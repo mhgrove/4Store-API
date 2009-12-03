@@ -43,6 +43,8 @@ import java.net.URL;
  * @author Michael Grove <mike@clarkparsia.com><br/>
  */
 public class StoreImpl implements Store {
+	private static final boolean DEBUG = true;
+
 	public static final String PARAM_QUERY = "query";
 	public static final String PARAM_SOFT_LIMIT = "soft-limit";
 
@@ -238,15 +240,99 @@ public class StoreImpl implements Store {
 	}
 
 	public boolean add(final String theGraph, final Format theFormat, final java.net.URI theGraphURI) throws StoreException {
-		throw new RuntimeException("NYI");
+		HttpResource aRes = mFourStoreResource.resource("data");
+
+		if (theGraphURI != null) {
+			aRes = aRes.resource(Encoder.urlEncode(theGraphURI.toString()));
+		}
+
+		try {
+			Response aResponse = aRes.initPut()
+					.addHeader(HttpHeaders.ContentType.getName(), theFormat.getMimeType())
+					.setBody(theGraph)
+					.execute();
+
+			if (aResponse.hasErrorCode()) {
+				throw responseToStoreException(aResponse);
+			}
+			else {
+				if (DEBUG) System.err.println(aResponse.getMessage() + "\n" + aResponse.getContent());
+
+				// TODO: is there a better indication of success?
+				if (aResponse.getResponseCode() == 200) {
+					return true;
+				}
+				else {
+					return false;
+				}
+			}
+		}
+		catch (IOException e) {
+			throw new StoreException(e);
+		}
 	}
 
 	public boolean delete(final String theGraph, final Format theFormat, final java.net.URI theGraphURI) throws StoreException {
-		throw new RuntimeException("NYI");
+		HttpResource aRes = mFourStoreResource.resource("data");
+
+		if (theGraphURI != null) {
+			aRes = aRes.resource(Encoder.urlEncode(theGraphURI.toString()));
+		}
+
+		try {
+			Response aResponse = aRes.initDelete()
+					.addHeader(HttpHeaders.ContentType.getName(), theFormat.getMimeType())
+					.setBody(theGraph)
+					.execute();
+
+			if (aResponse.hasErrorCode()) {
+				throw responseToStoreException(aResponse);
+			}
+			else {
+				if (DEBUG) System.err.println(aResponse.getMessage() + "\n" + aResponse.getContent());
+
+				// TODO: is there a better indication of success?
+				if (aResponse.getResponseCode() == 200) {
+					return true;
+				}
+				else {
+					return false;
+				}
+			}
+		}
+		catch (IOException e) {
+			throw new StoreException(e);
+		}
 	}
 
 	public boolean delete(final java.net.URI theGraphURI) throws StoreException {
-		throw new RuntimeException("NYI");
+		HttpResource aRes = mFourStoreResource.resource("data");
+
+		if (theGraphURI != null) {
+			aRes = aRes.resource(Encoder.urlEncode(theGraphURI.toString()));
+		}
+
+		try {
+			Response aResponse = aRes.delete();
+
+			if (aResponse.hasErrorCode()) {
+				throw responseToStoreException(aResponse);
+			}
+			else {
+				if (DEBUG) System.err.println(aResponse.getMessage() + "\n" + aResponse.getContent());
+
+				// TODO: is there a better indication of success?
+				if (aResponse.getResponseCode() == 200) {
+					return true;
+				}
+				else {
+					return false;
+				}
+			}
+		}
+		catch (IOException e) {
+			throw new StoreException(e);
+		}
 	}
 
 	public boolean append(final String theGraph, final Format theFormat, final java.net.URI theGraphURI) throws StoreException {

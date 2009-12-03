@@ -33,6 +33,10 @@ public class HttpResourceImpl implements HttpResource {
 		}
 	}
 
+	public Response delete() throws IOException {
+		return initDelete().execute();
+	}
+
 	public Response get() throws IOException {
 		return initGet().execute();
 	}
@@ -49,5 +53,13 @@ public class HttpResourceImpl implements HttpResource {
 
 	public Request initPost() {
 		return new Request(Method.POST, mURL);
+	}
+
+	public Request initPut() {
+		return new Request(Method.PUT, mURL);
+	}
+
+	public Request initDelete() {
+		return new Request(Method.DELETE, mURL);
 	}
 }

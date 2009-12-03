@@ -14,8 +14,11 @@ public interface HttpResource {
 	public HttpResource resource(String theName);
 
 	public Response get() throws IOException;
+	public Response delete() throws IOException;
 //	public Response head() throws IOException;
 
 	public Request initGet();
 	public Request initPost();
+	public Request initPut();
+	public Request initDelete();
 }
