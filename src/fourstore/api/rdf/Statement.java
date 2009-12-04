@@ -9,4 +9,7 @@ package fourstore.api.rdf;
  * @author Michael Grove <mike@clarkparsia.com><br/>
  */
 public interface Statement {
+	public Resource getSubject();
+	public URI getPredicate();
+	public Value getObject();
 }

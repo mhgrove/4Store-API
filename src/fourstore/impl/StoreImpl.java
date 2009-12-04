@@ -2,35 +2,49 @@ package fourstore.impl;
 
 import com.clarkparsia.sesame.utils.ExtendedGraph;
 import com.clarkparsia.sesame.utils.SesameIO;
-import com.clarkparsia.utils.io.Encoder;
+
 import fourstore.api.Format;
 import fourstore.api.QueryException;
 import fourstore.api.ResultFormat;
 import fourstore.api.Store;
 import fourstore.api.StoreException;
+import fourstore.api.rdf.BNode;
 import fourstore.api.rdf.Graph;
+import fourstore.api.rdf.Literal;
 import fourstore.api.rdf.Resource;
 import fourstore.api.rdf.Statement;
 import fourstore.api.rdf.URI;
 import fourstore.api.rdf.Value;
 import fourstore.api.results.ResultSet;
+
 import fourstore.impl.rdf.FourStoreValueFactory;
+
 import fourstore.impl.results.RdfXmlResultSetParser;
 import fourstore.impl.results.ResultSetBuilder;
+
+import fourstore.impl.sesame.SesameToFourStore;
+
+
 import org.openrdf.rio.ParseException;
+
 import org.openrdf.sesame.constants.RDFFormat;
+
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
+
 import web.HttpHeaders;
 import web.HttpResource;
+import web.Method;
 import web.MimeTypes;
 import web.ParameterList;
+import web.Request;
 import web.Response;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.StringReader;
+
 import java.net.ConnectException;
 import java.net.URL;
 
@@ -43,7 +57,10 @@ import java.net.URL;
  * @author Michael Grove <mike@clarkparsia.com><br/>
  */
 public class StoreImpl implements Store {
-	private static final boolean DEBUG = true;
+	private static final String DEFAULT_SUBGRAPH = "http://clarkparsia.com/4store/repository";
+
+	// TODO: remove me
+	private static final boolean DEBUG = false;
 
 	public static final String PARAM_QUERY = "query";
 	public static final String PARAM_SOFT_LIMIT = "soft-limit";
@@ -55,16 +72,29 @@ public class StoreImpl implements Store {
 	private HttpResource mFourStoreResource;
 
 	/**
-	 * Create a new StoreImpl
-	 * @param theURL the URL of the 4Store instance
+	 * Whether or not to use GET requests for queries to the servers.  Use POST by default just in the case that
+	 * queries in GET requests can be too long for servers to handle.
+	 * @see StoreFactory
 	 */
-	public StoreImpl(URL theURL) {
-		mBaseURL = theURL;
+	private boolean mUseGetForQueries = false;
+
+	StoreImpl(final URL theBaseURL, final boolean theUseGetForQueries) {
+		mBaseURL = theBaseURL;
 		mSoftLimit = -1;
+
+		mUseGetForQueries = theUseGetForQueries;
 
 		mFourStoreResource = new HttpResourceImpl(mBaseURL);
 
 		// TODO: don't allow operations until you are connected
+	}
+
+	/**
+	 * Create a new StoreImpl
+	 * @param theURL the URL of the 4Store instance
+	 */
+	StoreImpl(URL theURL) {
+		this(theURL, false);
 	}
 
 	/**
@@ -74,22 +104,65 @@ public class StoreImpl implements Store {
 		return mSoftLimit;
 	}
 
+	/**
+	 * @inheritDoc
+	 */
 	public boolean hasStatement(final Statement theStmt) throws StoreException {
-		throw new RuntimeException("NYI");
+		return hasStatement(theStmt.getSubject(), theStmt.getPredicate(), theStmt.getObject());
 	}
 
+	/**
+	 * @inheritDoc
+	 */
 	public boolean hasStatement(final Resource theSubj, final URI thePred, final Value theObj) throws StoreException {
-		throw new RuntimeException("NYI");
+		String aQuery = "select ?s ?p ?o where { ";
+
+		if (theSubj != null) {
+			aQuery += "filter(?s = " + toQueryString(theSubj) + "). ";
+		}
+
+		if (thePred != null) {
+			aQuery += "filter(?p = " + toQueryString(thePred) + "). ";
+		}
+
+		if (theObj != null) {
+			aQuery += "filter(?o = " + toQueryString(theObj) + "). ";
+		}
+
+		aQuery += " ?s ?p ?o.} limit 1";
+
+		return !query(aQuery).isEmpty();
 	}
 
-	public boolean hasStatement(final java.net.URI theGraph, final Statement theStmt) throws StoreException {
-		throw new RuntimeException("NYI");
-	}
+    public static String toQueryString(Value theValue) {
+        StringBuffer aBuffer = new StringBuffer();
 
-	public boolean hasStatement(final java.net.URI theGraph, final Resource theSubj, final URI thePred, final Value theObj) throws StoreException {
-		throw new RuntimeException("NYI");
-	}
+        if (theValue instanceof URI) {
+            URI aURI = (URI) theValue;
+            aBuffer.append("<").append(aURI.getURI()).append(">");
+        }
+        else if (theValue instanceof BNode) {
+            aBuffer.append("_:").append(((BNode)theValue).getId());
+        }
+        else if (theValue instanceof Literal) {
+            Literal aLit = (Literal)theValue;
+            aBuffer.append("\"").append(escape(aLit.getValue())).append("\"").append(aLit.getLanguage() != null ? "@" + aLit.getLanguage() : "");
+            if (aLit.getDatatype() != null) {
+                aBuffer.append("^^<").append(aLit.getDatatype().toString()).append(">");
+            }
+        }
 
+        return aBuffer.toString();
+    }
+
+    private static String escape(String theString) {
+        theString = theString.replaceAll("\"", "\\\\\"");
+
+        return theString;
+    }
+	/**
+	 * @inheritDoc
+	 */
 	public void connect() throws ConnectException {
 		try {
 			Response aResp = mFourStoreResource.resource("status/").get();
@@ -104,6 +177,9 @@ public class StoreImpl implements Store {
 		}
 	}
 
+	/**
+	 * @inheritDoc
+	 */
 	public void disconnect() throws ConnectException {
 		// no clean-up needed
 	}
@@ -133,11 +209,20 @@ public class StoreImpl implements Store {
 				.add(PARAM_SOFT_LIMIT, String.valueOf(getSoftLimit()));
 
 		try {
-			Response aResponse = aRes.initPost()
-					.addHeader(HttpHeaders.ContentType.getName(), MimeTypes.FormUrlEncoded.getMimeType())
-					.addHeader(HttpHeaders.Accept.getName(), ResultFormat.XML.getMimeType())
-					.setBody(aParams.getURLEncoded())
-					.execute();
+			Request aQueryRequest = null;
+			if (mUseGetForQueries) {
+				aQueryRequest = aRes.initGet()
+						.addHeader(HttpHeaders.Accept.getName(), ResultFormat.XML.getMimeType())
+						.setParameters(aParams);
+			}
+			else {
+				aQueryRequest = aRes.initPost()
+						.addHeader(HttpHeaders.ContentType.getName(), MimeTypes.FormUrlEncoded.getMimeType())
+						.addHeader(HttpHeaders.Accept.getName(), ResultFormat.XML.getMimeType())
+						.setBody(aParams.getURLEncoded());
+			}
+
+			Response aResponse = aQueryRequest.execute();
 
 			if (aResponse.hasErrorCode()) {
 				throw new QueryException(responseToStoreException(aResponse));
@@ -158,7 +243,7 @@ public class StoreImpl implements Store {
 					aParser.setContentHandler(aHandler);
 					aParser.setFeature("http://xml.org/sax/features/validation", false);
 
-					aParser.parse(new InputSource(new ByteArrayInputStream(aResponse.getContent().getBytes(Encoder.UTF8))));
+					aParser.parse(new InputSource(new ByteArrayInputStream(aResponse.getContent().getBytes("UTF-8"))));
 
 					return aHandler.resultSet();
 				}
@@ -177,11 +262,14 @@ public class StoreImpl implements Store {
 		
 		// TODO: could stand for more robust error checking.
 		if (aContent.indexOf("parser error:") != -1) {
-			// pull out the comment lines w/ the error?
+			// TODO: pull out the comment lines w/ the error?
 			throw new QueryException("Parse Error\n" + aContent);
 		}
 	}
 
+	/**
+	 * @inheritDoc
+	 */
 	public Graph constructQuery(final String theQuery) throws QueryException {
 		HttpResource aRes = mFourStoreResource.resource("sparql");
 
@@ -197,12 +285,23 @@ public class StoreImpl implements Store {
 				.add(PARAM_SOFT_LIMIT, String.valueOf(getSoftLimit()));
 
 		try {
-			Response aResponse = aRes.initPost()
-					.addHeader(HttpHeaders.ContentType.getName(), MimeTypes.FormUrlEncoded.getMimeType())
-					// TODO: why doesn't setting the accept header work here?
-					.addHeader(HttpHeaders.Accept.getName(), Format.Turtle.getMimeType())
-					.setBody(aParams.getURLEncoded())
-					.execute();
+			Request aQueryRequest = null;
+
+			if (mUseGetForQueries) {
+				aQueryRequest = aRes.initGet()
+						// TODO: why doesn't setting the accept header work here?
+						.addHeader(HttpHeaders.Accept.getName(), Format.Turtle.getMimeType())
+						.setParameters(aParams);
+			}
+			else {
+				aQueryRequest = aRes.initPost()
+						.addHeader(HttpHeaders.ContentType.getName(), MimeTypes.FormUrlEncoded.getMimeType())
+						// TODO: why doesn't setting the accept header work here?
+						.addHeader(HttpHeaders.Accept.getName(), Format.Turtle.getMimeType())
+						.setBody(aParams.getURLEncoded());
+			}
+
+			Response aResponse = aQueryRequest.execute();
 
 			if (aResponse.hasErrorCode()) {
 				throw new QueryException(responseToStoreException(aResponse));
@@ -218,8 +317,7 @@ public class StoreImpl implements Store {
 					ExtendedGraph aGraph = SesameIO.readGraph(new StringReader(aResponse.getContent()),
 															  RDFFormat.RDFXML);
 
-					// TODO: actually pass back the graph!!
-					return new Graph(){};
+					return SesameToFourStore.toGraph(aGraph);
 				}
 				catch (ParseException e) {
 					throw new QueryException("Error while parsing rdf/xml-formatted query results", e);
@@ -231,85 +329,49 @@ public class StoreImpl implements Store {
 		}
 	}
 
+	/**
+	 * @inheritDoc
+	 */
 	public Graph describe(final URI theConcept) throws QueryException {
 		throw new RuntimeException("NYI");
 	}
 
+	/**
+	 * @inheritDoc
+	 */
 	public boolean ask(final URI theConcept) throws QueryException {
 		throw new RuntimeException("NYI");
 	}
 
+
+	/**
+	 * @inheritDoc
+	 */
 	public boolean add(final String theGraph, final Format theFormat, final java.net.URI theGraphURI) throws StoreException {
-		HttpResource aRes = mFourStoreResource.resource("data");
-
-		if (theGraphURI != null) {
-			aRes = aRes.resource(Encoder.urlEncode(theGraphURI.toString()));
-		}
-
-		try {
-			Response aResponse = aRes.initPut()
-					.addHeader(HttpHeaders.ContentType.getName(), theFormat.getMimeType())
-					.setBody(theGraph)
-					.execute();
-
-			if (aResponse.hasErrorCode()) {
-				throw responseToStoreException(aResponse);
-			}
-			else {
-				if (DEBUG) System.err.println(aResponse.getMessage() + "\n" + aResponse.getContent());
-
-				// TODO: is there a better indication of success?
-				if (aResponse.getResponseCode() == 200) {
-					return true;
-				}
-				else {
-					return false;
-				}
-			}
-		}
-		catch (IOException e) {
-			throw new StoreException(e);
-		}
+		return dataOperation(Method.PUT, theGraph, theFormat, theGraphURI);
 	}
 
+	/**
+	 * @inheritDoc
+	 */
 	public boolean delete(final String theGraph, final Format theFormat, final java.net.URI theGraphURI) throws StoreException {
-		HttpResource aRes = mFourStoreResource.resource("data");
-
-		if (theGraphURI != null) {
-			aRes = aRes.resource(Encoder.urlEncode(theGraphURI.toString()));
-		}
-
-		try {
-			Response aResponse = aRes.initDelete()
-					.addHeader(HttpHeaders.ContentType.getName(), theFormat.getMimeType())
-					.setBody(theGraph)
-					.execute();
-
-			if (aResponse.hasErrorCode()) {
-				throw responseToStoreException(aResponse);
-			}
-			else {
-				if (DEBUG) System.err.println(aResponse.getMessage() + "\n" + aResponse.getContent());
-
-				// TODO: is there a better indication of success?
-				if (aResponse.getResponseCode() == 200) {
-					return true;
-				}
-				else {
-					return false;
-				}
-			}
-		}
-		catch (IOException e) {
-			throw new StoreException(e);
-		}
+		return dataOperation(Method.DELETE, theGraph, theFormat, theGraphURI);
 	}
 
+	/**
+	 * @inheritDoc
+	 */
 	public boolean delete(final java.net.URI theGraphURI) throws StoreException {
 		HttpResource aRes = mFourStoreResource.resource("data");
 
 		if (theGraphURI != null) {
-			aRes = aRes.resource(Encoder.urlEncode(theGraphURI.toString()));
+			// TODO: does this need to be URL encoded?
+			aRes = aRes.resource(theGraphURI.toString());
+		}
+		else {
+			// TODO: should we just delete the default subgraph here?
+
+			throw new StoreException("No graph specified to delete");
 		}
 
 		try {
@@ -322,12 +384,7 @@ public class StoreImpl implements Store {
 				if (DEBUG) System.err.println(aResponse.getMessage() + "\n" + aResponse.getContent());
 
 				// TODO: is there a better indication of success?
-				if (aResponse.getResponseCode() == 200) {
-					return true;
-				}
-				else {
-					return false;
-				}
+				return aResponse.getResponseCode() == 200;
 			}
 		}
 		catch (IOException e) {
@@ -335,8 +392,46 @@ public class StoreImpl implements Store {
 		}
 	}
 
+	/**
+	 * @inheritDoc
+	 */
 	public boolean append(final String theGraph, final Format theFormat, final java.net.URI theGraphURI) throws StoreException {
-		throw new RuntimeException("NYI");
+		return dataOperation(Method.POST, theGraph, theFormat, theGraphURI);
+	}
+
+	private boolean dataOperation(final Method theMethod, final String theGraph, final Format theFormat, final java.net.URI theGraphURI) throws StoreException {
+		HttpResource aRes = mFourStoreResource.resource("data");
+
+		if (theGraphURI != null) {
+			// does this need to be URL encoded?
+			aRes = aRes.resource(theGraphURI.toString());
+		}
+		else {
+			// i think 4store requires these operations to be in a named subgraph, i dont think there's some generic
+			// global un-named blob of data that you can stick stuff into.  so if a subgraph is not specified
+			// we'll just stick everything into the catch-all subgraph of our choosing...
+			aRes = aRes.resource(DEFAULT_SUBGRAPH);
+		}
+
+		try {
+			Response aResponse = aRes.initRequest(theMethod)
+					.addHeader(HttpHeaders.ContentType.getName(), theFormat.getMimeType())
+					.setBody(theGraph)
+					.execute();
+
+			if (aResponse.hasErrorCode()) {
+				throw responseToStoreException(aResponse);
+			}
+			else {
+				if (DEBUG) System.err.println(aResponse.getMessage() + "\n" + aResponse.getContent());
+
+				// TODO: is there a better indication of success?
+				return aResponse.getResponseCode() == 200;
+			}
+		}
+		catch (IOException e) {
+			throw new StoreException(e);
+		}
 	}
 
 	/**
@@ -366,6 +461,9 @@ public class StoreImpl implements Store {
 		}
 	}
 
+	/**
+	 * @inheritDoc
+	 */
 	public String status() throws StoreException {
 		HttpResource aRes = mFourStoreResource.resource("status");
 

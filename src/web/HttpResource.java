@@ -21,4 +21,6 @@ public interface HttpResource {
 	public Request initPost();
 	public Request initPut();
 	public Request initDelete();
+
+	public Request initRequest(Method theMethod);
 }

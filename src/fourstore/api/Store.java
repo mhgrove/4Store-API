@@ -28,17 +28,19 @@ public interface Store {
 	public boolean hasStatement(Statement theStmt) throws StoreException;
 	public boolean hasStatement(Resource theSubj, URI thePred, Value theObj) throws StoreException;
 
-	public boolean hasStatement(java.net.URI theGraph, Statement theStmt) throws StoreException;
-	public boolean hasStatement(java.net.URI theGraph, Resource theSubj, URI thePred, Value theObj) throws StoreException;
-
 	public ResultSet query(String theQuery) throws QueryException;
 	public Graph constructQuery(String theQuery) throws QueryException;
 	public Graph describe(URI theConcept) throws QueryException;
 	public boolean ask(URI theConcept) throws QueryException;
 
+	// TODO: for these operations that modify the data, add methods which take an InputStream rather than
+	// a string.  this way the inputstream can be written directly to the HTTP connection rather than being in a
+	// string which requires all of it to be in memory
+
 	public boolean add(String theGraph, Format theFormat, java.net.URI theGraphURI) throws StoreException;
 
-	public boolean delete(String theGraph, Format theFormat, java.net.URI theGraphURI) throws StoreException;
+	// TODO: why is this not supported??
+//	public boolean delete(String theGraph, Format theFormat, java.net.URI theGraphURI) throws StoreException;
 	public boolean delete(java.net.URI theGraphURI) throws StoreException;
 
 	public boolean append(String theGraph, Format theFormat, java.net.URI theGraphURI) throws StoreException;

@@ -62,4 +62,8 @@ public class HttpResourceImpl implements HttpResource {
 	public Request initDelete() {
 		return new Request(Method.DELETE, mURL);
 	}
+
+	public Request initRequest(Method theMethod) {
+		return new Request(theMethod, mURL);
+	}
 }

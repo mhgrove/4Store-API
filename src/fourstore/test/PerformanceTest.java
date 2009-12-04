@@ -5,6 +5,7 @@ import fourstore.api.Store;
 import fourstore.api.results.Binding;
 import fourstore.api.results.ResultSet;
 
+import fourstore.impl.StoreFactory;
 import fourstore.impl.StoreImpl;
 
 import java.net.URL;
@@ -117,7 +118,7 @@ public class PerformanceTest {
     }
 
 	public static void main(String[] args) throws Exception {
-		Store aStore = new StoreImpl(new URL("http://hume.int.clarkparsia.com:8000/"));
+		Store aStore = StoreFactory.create(new URL("http://hume.int.clarkparsia.com:8000/"));
 
 		test(aStore, Queries.getSPARQLQueries());
 	}

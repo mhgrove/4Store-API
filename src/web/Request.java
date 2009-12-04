@@ -210,6 +210,8 @@ public class Request {
 		}
 
 		aResponse.setHeaders(aResponseHeaders);
+		
+		aResponse.setMessage(aConn.getResponseMessage());
 
 		InputStream aResponseStream = null;
 
@@ -242,8 +244,6 @@ public class Request {
 				aResponseStream.close();
 			}
 		}
-
-		aResponse.setMessage(aConn.getResponseMessage());
 
 		aConn.disconnect();
 
