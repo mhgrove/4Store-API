@@ -49,8 +49,9 @@ import java.net.ConnectException;
 import java.net.URL;
 
 /**
- * Title: <br/>
- * Description: <br/>
+ * Title: StoreImpl<br/>
+ * Description: Implementation of Store interface which interacts with a 4Store database over their RESTful HTTP
+ * protocol as <a href="http://4store.org/trac/wiki/SparqlServer">documented here.</a><br/>
  * Company: Clark & Parsia, LLC. <http://clarkparsia.com><br/>
  * Created: Dec 2, 2009 9:22:12 AM<br/>
  *
@@ -58,9 +59,6 @@ import java.net.URL;
  */
 public class StoreImpl implements Store {
 	private static final String DEFAULT_SUBGRAPH = "http://clarkparsia.com/4store/repository";
-
-	// TODO: remove me
-	private static final boolean DEBUG = false;
 
 	public static final String PARAM_QUERY = "query";
 	public static final String PARAM_SOFT_LIMIT = "soft-limit";
@@ -115,6 +113,10 @@ public class StoreImpl implements Store {
 	 * @inheritDoc
 	 */
 	public boolean hasStatement(final Resource theSubj, final URI thePred, final Value theObj) throws StoreException {
+		if (theSubj == null && thePred == null && theObj == null) {
+			throw new StoreException("You must bind at least one value to this function.");
+		}
+
 		String aQuery = "select ?s ?p ?o where { ";
 
 		if (theSubj != null) {
@@ -381,8 +383,6 @@ public class StoreImpl implements Store {
 				throw responseToStoreException(aResponse);
 			}
 			else {
-				if (DEBUG) System.err.println(aResponse.getMessage() + "\n" + aResponse.getContent());
-
 				// TODO: is there a better indication of success?
 				return aResponse.getResponseCode() == 200;
 			}
@@ -423,8 +423,6 @@ public class StoreImpl implements Store {
 				throw responseToStoreException(aResponse);
 			}
 			else {
-				if (DEBUG) System.err.println(aResponse.getMessage() + "\n" + aResponse.getContent());
-
 				// TODO: is there a better indication of success?
 				return aResponse.getResponseCode() == 200;
 			}
