@@ -1,9 +1,9 @@
 package fourstore.impl;
 
-import web.HttpResource;
-import web.Method;
-import web.Request;
-import web.Response;
+import com.clarkparsia.utils.web.HttpResource;
+import com.clarkparsia.utils.web.Method;
+import com.clarkparsia.utils.web.Request;
+import com.clarkparsia.utils.web.Response;
 
 import java.io.IOException;
 import java.net.MalformedURLException;

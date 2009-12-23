@@ -3,16 +3,12 @@ package fourstore.test;
 import fourstore.api.QueryException;
 import fourstore.api.Store;
 
-import fourstore.api.results.Binding;
 import fourstore.api.results.ResultSet;
 
 import fourstore.impl.StoreFactory;
-import fourstore.impl.StoreImpl;
 import fourstore.impl.TabbedResultSetFormatter;
-import web.Method;
+import com.clarkparsia.utils.web.Method;
 
-import java.net.ConnectException;
-import java.net.MalformedURLException;
 import java.net.URL;
 
 import java.util.ArrayList;

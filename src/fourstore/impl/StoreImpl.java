@@ -33,13 +33,13 @@ import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
 
-import web.HttpHeaders;
-import web.HttpResource;
-import web.Method;
-import web.MimeTypes;
-import web.ParameterList;
-import web.Request;
-import web.Response;
+import com.clarkparsia.utils.web.HttpHeaders;
+import com.clarkparsia.utils.web.HttpResource;
+import com.clarkparsia.utils.web.Method;
+import com.clarkparsia.utils.web.MimeTypes;
+import com.clarkparsia.utils.web.ParameterList;
+import com.clarkparsia.utils.web.Request;
+import com.clarkparsia.utils.web.Response;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;

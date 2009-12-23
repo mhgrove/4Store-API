@@ -2,7 +2,7 @@ package fourstore.impl;
 
 import fourstore.api.Store;
 import fourstore.impl.StoreImpl;
-import web.Method;
+import com.clarkparsia.utils.web.Method;
 
 import java.net.URL;
 
