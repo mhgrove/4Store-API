@@ -8,7 +8,6 @@ import fourstore.impl.rdf.FourStoreValueFactory;
 import fourstore.impl.rdf.GraphImpl;
 import fourstore.impl.rdf.StatementImpl;
 import fourstore.api.rdf.URI;
-import org.openrdf.model.Value;
 import org.openrdf.sesame.sail.StatementIterator;
 
 /**
@@ -20,7 +19,7 @@ import org.openrdf.sesame.sail.StatementIterator;
  * @author Michael Grove <mike@clarkparsia.com><br/>
  */
 public class SesameToFourStore {
-	private static FourStoreValueFactory aFactory = new FourStoreValueFactory();
+	private static FourStoreValueFactory FACTORY = new FourStoreValueFactory();
 
 	public static Graph toGraph(org.openrdf.model.Graph theSesameGraph) {
 
@@ -52,13 +51,13 @@ public class SesameToFourStore {
 		org.openrdf.model.Literal aLit = (org.openrdf.model.Literal) theValue;
 
 		if (aLit.getDatatype() != null) {
-			return aFactory.createLiteral(aLit.getLabel(), toURI(aLit.getDatatype()));
+			return FACTORY.createLiteral(aLit.getLabel(), toURI(aLit.getDatatype()));
 		}
 		else if (aLit.getLanguage() != null) {
-			return aFactory.createLiteral(aLit.getLabel(), aLit.getLanguage());
+			return FACTORY.createLiteral(aLit.getLabel(), aLit.getLanguage());
 		}
 		else {
-			return aFactory.createLiteral(aLit.getLabel());
+			return FACTORY.createLiteral(aLit.getLabel());
 		}
 	}
 
@@ -67,10 +66,10 @@ public class SesameToFourStore {
 	}
 
 	private static BNode toBNode(final org.openrdf.model.BNode theBNode) {
-		return aFactory.createBNode(theBNode.getID());
+		return FACTORY.createBNode(theBNode.getID());
 	}
 
 	private static URI toURI(final org.openrdf.model.URI theURI) {
-		return aFactory.createURI(theURI.getURI());
+		return FACTORY.createURI(theURI.getURI());
 	}
 }
