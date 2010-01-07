@@ -1,0 +1,106 @@
+<?xml version="1.0"?>
+<!--
+  ~ Copyright (c) 2005 - 2010, Clark & Parsia, LLC. <http://www.clarkparsia.com>
+  -->
+
+<project name="4Store-API" default="dist" basedir=".">
+    <description>
+        Clark &amp; Parsia 4Store API
+    </description>
+
+    <!-- Global Properties -->
+    <property name="src" location="src" />
+    <property name="build" location="build" />
+    <property name="dist" location="dist" />
+
+    <property name="project.name" value="cp-common-fourstore" />
+    <property name="project.version" value="0.1" />
+
+    <path id="project.class.path">
+        <pathelement location="lib/" />
+        <pathelement location="${build}" />
+        <fileset dir="lib">
+            <include name="**/*.jar"/>
+            <exclude name="**/${project.name}*.jar"/>
+        </fileset>
+    </path>
+
+    <target name="init">
+        <pathconvert targetos="unix" property="classpath" refid="project.class.path" />
+        <echo>CLASSPATH=${classpath}</echo>
+        <!-- Create the time stamp -->
+        <tstamp/>
+        <!-- Create the build directory structure used by compile -->
+        <mkdir dir="${build}"/>
+    </target>
+
+    <target name="compile" depends="init"
+            description="Compile source files." >
+        <javac source="1.5" target="1.5" srcdir="${src}" destdir="${build}" debug="yes" deprecation="yes">
+            <classpath refid="project.class.path"/>
+        </javac>
+    </target>
+
+    <target name="build" depends="compile"
+            description="Compile sources and copy data files into build directory.">
+        <copy todir="${build}">
+            <fileset dir="${src}">
+                <exclude name="**/*.java" />
+            </fileset>
+        </copy>
+    </target>
+
+    <target name="distfiles">
+       <!-- Copy in lib files -->
+        <mkdir dir="${dist}/lib" />
+
+        <copy todir="${dist}/src">
+            <fileset dir="${src}">
+                <include name="**/*.java" />
+            </fileset>
+        </copy>
+
+        <copy todir="${dist}/lib">
+            <fileset dir="lib">
+                <include name="**/*.jar" />
+                <exclude name="**/${project.name}*.jar"/>
+            </fileset>
+        </copy>
+
+    </target>
+
+    <target name="dist" depends="build,distfiles"
+            description="Generate a distribution" >
+        <!-- Generate relative classpath for jar file -->
+        <property name="rlib" location="${basedir}/lib/"/>
+        <pathconvert dirsep="/" pathsep=" " property="Class-Path">
+            <map from="${rlib}/" to=""/>
+                <map from="${rlib}\" to=""/>
+            <path>
+                <fileset dir="${rlib}">
+                    <include name="**/*.jar" />
+                </fileset>
+            </path>
+        </pathconvert>
+
+        <echo>${Class-Path}</echo>
+        <!-- Make Jar file. -->
+        <jar jarfile="${dist}/lib/${project.name}-${project.version}.jar"
+             basedir="${build}"/>
+    </target>
+
+    <target name="clean" description="Clean up build files">
+        <delete dir="${build}" />
+        <delete dir="${dist}" />
+    </target>
+
+    <target name="dist-zip" depends="dist">
+        <zip destfile="${dist}/${project.name}-${DSTAMP}.zip">
+	    <zipfileset dir="${dist}">
+	    <include name="**/*"/>
+	    <exclude name="**/src/**"/>
+	    <exclude name="**/*.zip"/>
+	        </zipfileset>
+		</zip>
+    </target>
+</project>
