@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-package com.clarkparsia.fourstore;
+package com.clarkparsia.fourstore.test;
 
 import com.clarkparsia.sesame.utils.ExtendedGraph;
 import com.clarkparsia.sesame.utils.SesameIO;
