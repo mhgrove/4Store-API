@@ -15,34 +15,34 @@
 
 package com.clarkparsia.fourstore.impl;
 
-import com.clarkparsia.sesame.utils.ExtendedGraph;
-import com.clarkparsia.sesame.utils.SesameIO;
-
-import com.clarkparsia.fourstore.api.Format;
 import com.clarkparsia.fourstore.api.QueryException;
-import com.clarkparsia.fourstore.api.ResultFormat;
 import com.clarkparsia.fourstore.api.Store;
 import com.clarkparsia.fourstore.api.StoreException;
-import com.clarkparsia.fourstore.api.rdf.BNode;
-import com.clarkparsia.fourstore.api.rdf.Graph;
-import com.clarkparsia.fourstore.api.rdf.Literal;
-import com.clarkparsia.fourstore.api.rdf.Resource;
-import com.clarkparsia.fourstore.api.rdf.Statement;
-import com.clarkparsia.fourstore.api.rdf.URI;
-import com.clarkparsia.fourstore.api.rdf.Value;
-import com.clarkparsia.fourstore.api.results.ResultSet;
-
-import com.clarkparsia.fourstore.impl.rdf.FourStoreValueFactory;
 
 import com.clarkparsia.fourstore.impl.results.SparqlXmlResultSetParser;
 import com.clarkparsia.fourstore.impl.results.ResultSetBuilder;
 
-import com.clarkparsia.fourstore.impl.sesame.SesameToFourStore;
+import com.clarkparsia.openrdf.OpenRdfIO;
 
+import org.openrdf.model.BNode;
+import org.openrdf.model.Graph;
+import org.openrdf.model.Literal;
+import org.openrdf.model.Resource;
+import org.openrdf.model.Statement;
+import org.openrdf.model.URI;
+import org.openrdf.model.Value;
 
-import org.openrdf.rio.ParseException;
+import org.openrdf.model.impl.ValueFactoryImpl;
 
-import org.openrdf.sesame.constants.RDFFormat;
+import org.openrdf.query.QueryEvaluationException;
+import org.openrdf.query.TupleQueryResult;
+
+import org.openrdf.query.resultio.TupleQueryResultFormat;
+
+import org.openrdf.query.impl.TupleQueryResultImpl;
+
+import org.openrdf.rio.RDFFormat;
+import org.openrdf.rio.RDFParseException;
 
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
@@ -147,22 +147,27 @@ public class StoreImpl implements Store {
 
 		aQuery += " ?s ?p ?o.} limit 1";
 
-		return !query(aQuery).isEmpty();
-	}
+        try {
+            return !query(aQuery).hasNext();
+        }
+        catch (QueryEvaluationException e) {
+            throw new StoreException(e);
+        }
+    }
 
     public static String toQueryString(Value theValue) {
         StringBuffer aBuffer = new StringBuffer();
 
         if (theValue instanceof URI) {
             URI aURI = (URI) theValue;
-            aBuffer.append("<").append(aURI.getURI()).append(">");
+            aBuffer.append("<").append(aURI.toString()).append(">");
         }
         else if (theValue instanceof BNode) {
-            aBuffer.append("_:").append(((BNode)theValue).getId());
+            aBuffer.append("_:").append(((BNode)theValue).getID());
         }
         else if (theValue instanceof Literal) {
             Literal aLit = (Literal)theValue;
-            aBuffer.append("\"").append(escape(aLit.getValue())).append("\"").append(aLit.getLanguage() != null ? "@" + aLit.getLanguage() : "");
+            aBuffer.append("\"").append(escape(aLit.getLabel())).append("\"").append(aLit.getLanguage() != null ? "@" + aLit.getLanguage() : "");
             if (aLit.getDatatype() != null) {
                 aBuffer.append("^^<").append(aLit.getDatatype().toString()).append(">");
             }
@@ -210,7 +215,7 @@ public class StoreImpl implements Store {
 	/**
 	 * @inheritDoc
 	 */
-	public ResultSet query(String theQuery) throws QueryException {
+	public TupleQueryResult query(String theQuery) throws QueryException {
 		HttpResource aRes = mFourStoreResource.resource("sparql");
 
 		String aQuery = theQuery;
@@ -223,18 +228,18 @@ public class StoreImpl implements Store {
 		ParameterList aParams = new ParameterList()
 				.add(PARAM_QUERY, aQuery)
 				.add(PARAM_SOFT_LIMIT, String.valueOf(getSoftLimit()));
-
+		
 		try {
 			Request aQueryRequest = null;
 			if (mUseGetForQueries) {
 				aQueryRequest = aRes.initGet()
-						.addHeader(HttpHeaders.Accept.getName(), ResultFormat.XML.getMimeType())
+						.addHeader(HttpHeaders.Accept.getName(), TupleQueryResultFormat.SPARQL.getDefaultMIMEType())
 						.setParameters(aParams);
 			}
 			else {
 				aQueryRequest = aRes.initPost()
 						.addHeader(HttpHeaders.ContentType.getName(), MimeTypes.FormUrlEncoded.getMimeType())
-						.addHeader(HttpHeaders.Accept.getName(), ResultFormat.XML.getMimeType())
+						.addHeader(HttpHeaders.Accept.getName(), TupleQueryResultFormat.SPARQL.getDefaultMIMEType())
 						.setBody(aParams.getURLEncoded());
 			}
 
@@ -252,7 +257,7 @@ public class StoreImpl implements Store {
 
 				try {
 					// TODO: probably make the call to create the value factory a function which can be overridden by sub classes, such as the one w/ sesame support?
-					SparqlXmlResultSetParser aHandler = new SparqlXmlResultSetParser(new ResultSetBuilder(new FourStoreValueFactory()));
+					SparqlXmlResultSetParser aHandler = new SparqlXmlResultSetParser(new ResultSetBuilder(new ValueFactoryImpl()));
 
 					XMLReader aParser = org.xml.sax.helpers.XMLReaderFactory.createXMLReader();
 
@@ -261,7 +266,7 @@ public class StoreImpl implements Store {
 
 					aParser.parse(new InputSource(new ByteArrayInputStream(aResponse.getContent().getBytes("UTF-8"))));
 
-					return aHandler.resultSet();
+                    return new TupleQueryResultImpl(aHandler.bindingNames(), aHandler.bindingSet());
 				}
 				catch (SAXException e) {
 					throw new QueryException("Could not parse SPARQL-XML results", e);
@@ -306,14 +311,14 @@ public class StoreImpl implements Store {
 			if (mUseGetForQueries) {
 				aQueryRequest = aRes.initGet()
 						// TODO: why doesn't setting the accept header work here?
-						.addHeader(HttpHeaders.Accept.getName(), Format.Turtle.getMimeType())
+						.addHeader(HttpHeaders.Accept.getName(), RDFFormat.TURTLE.getDefaultMIMEType())
 						.setParameters(aParams);
 			}
 			else {
 				aQueryRequest = aRes.initPost()
 						.addHeader(HttpHeaders.ContentType.getName(), MimeTypes.FormUrlEncoded.getMimeType())
 						// TODO: why doesn't setting the accept header work here?
-						.addHeader(HttpHeaders.Accept.getName(), Format.Turtle.getMimeType())
+						.addHeader(HttpHeaders.Accept.getName(), RDFFormat.TURTLE.getDefaultMIMEType())
 						.setBody(aParams.getURLEncoded());
 			}
 
@@ -330,12 +335,9 @@ public class StoreImpl implements Store {
 				// <!-- warning: hit complexity limit 2 times, increasing soft limit may give more results -->
 
 				try {
-					ExtendedGraph aGraph = SesameIO.readGraph(new StringReader(aResponse.getContent()),
-															  RDFFormat.RDFXML);
-
-					return SesameToFourStore.toGraph(aGraph);
+					return OpenRdfIO.readGraph(new StringReader(aResponse.getContent()), RDFFormat.RDFXML);
 				}
-				catch (ParseException e) {
+				catch (RDFParseException e) {
 					throw new QueryException("Error while parsing rdf/xml-formatted query results", e);
 				}
 			}
@@ -349,35 +351,34 @@ public class StoreImpl implements Store {
 	 * @inheritDoc
 	 */
 	public Graph describe(final URI theConcept) throws QueryException {
-		throw new RuntimeException("NYI");
+		throw new UnsupportedOperationException("NYI");
 	}
 
 	/**
 	 * @inheritDoc
 	 */
 	public boolean ask(final URI theConcept) throws QueryException {
-		throw new RuntimeException("NYI");
+		throw new UnsupportedOperationException("NYI");
 	}
-
 
 	/**
 	 * @inheritDoc
 	 */
-	public boolean add(final String theGraph, final Format theFormat, final java.net.URI theGraphURI) throws StoreException {
+	public boolean add(final String theGraph, final RDFFormat theFormat, final URI theGraphURI) throws StoreException {
 		return dataOperation(Method.PUT, theGraph, theFormat, theGraphURI);
 	}
 
 	/**
 	 * @inheritDoc
 	 */
-	public boolean delete(final String theGraph, final Format theFormat, final java.net.URI theGraphURI) throws StoreException {
-		return dataOperation(Method.DELETE, theGraph, theFormat, theGraphURI);
-	}
+    public boolean delete(final String theGraph, final RDFFormat theFormat, final URI theGraphURI) throws StoreException {
+        throw new UnsupportedOperationException("4Store does not currently support the deletion of individual triples, only named graphs");
+    }
 
 	/**
 	 * @inheritDoc
 	 */
-	public boolean delete(final java.net.URI theGraphURI) throws StoreException {
+	public boolean delete(final URI theGraphURI) throws StoreException {
 		HttpResource aRes = mFourStoreResource.resource("data");
 
 		if (theGraphURI != null) {
@@ -409,11 +410,11 @@ public class StoreImpl implements Store {
 	/**
 	 * @inheritDoc
 	 */
-	public boolean append(final String theGraph, final Format theFormat, final java.net.URI theGraphURI) throws StoreException {
+	public boolean append(final String theGraph, final RDFFormat theFormat, final URI theGraphURI) throws StoreException {
 		return dataOperation(Method.POST, theGraph, theFormat, theGraphURI);
 	}
 
-	private boolean dataOperation(final Method theMethod, final String theGraph, final Format theFormat, final java.net.URI theGraphURI) throws StoreException {
+	private boolean dataOperation(final Method theMethod, final String theGraph, final RDFFormat theFormat, final URI theGraphURI) throws StoreException {
 		HttpResource aRes = mFourStoreResource.resource("data");
 
 		if (theGraphURI != null) {
@@ -429,7 +430,7 @@ public class StoreImpl implements Store {
 
 		try {
 			Response aResponse = aRes.initRequest(theMethod)
-					.addHeader(HttpHeaders.ContentType.getName(), theFormat.getMimeType())
+					.addHeader(HttpHeaders.ContentType.getName(), theFormat.getDefaultMIMEType())
 					.setBody(theGraph)
 					.execute();
 

@@ -15,14 +15,16 @@
 
 package com.clarkparsia.fourstore.impl.results;
 
-import com.clarkparsia.fourstore.api.rdf.Literal;
-
-import com.clarkparsia.fourstore.api.results.ResultSet;
+import org.openrdf.model.Literal;
+import org.openrdf.query.BindingSet;
 import org.xml.sax.Attributes;
 import org.xml.sax.helpers.DefaultHandler;
 
+import java.util.List;
+import java.util.Collection;
+
 /**
- * <p>Sax implementation to parse a SPARQL XML result set into a 4Store ResultSet</p>
+ * <p>Sax implementation to parse a SPARQL XML result set into a result set.</p>
  *
  * @author Michael Grove
  * @since 0.1
@@ -65,8 +67,12 @@ public class SparqlXmlResultSetParser extends DefaultHandler {
 		mResults.endResultSet();
     }
 
-	public ResultSet resultSet() {
-		return mResults.resultSet();
+	public List<String> bindingNames() {
+		return mResults.bindingNames();
+	}
+
+	public Collection<BindingSet> bindingSet() {
+		return mResults.bindingSet();
 	}
 
 	/**

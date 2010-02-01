@@ -25,7 +25,7 @@
     <property name="dist" location="dist" />
 
     <property name="project.name" value="cp-common-fourstore" />
-    <property name="project.version" value="0.1" />
+    <property name="project.version" value="0.2" />
 
     <path id="project.class.path">
         <pathelement location="lib/" />

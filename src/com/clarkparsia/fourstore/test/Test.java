@@ -15,24 +15,29 @@
 
 package com.clarkparsia.fourstore.test;
 
-import com.clarkparsia.sesame.utils.ExtendedGraph;
-import com.clarkparsia.sesame.utils.SesameIO;
 import com.clarkparsia.utils.io.IOUtil;
-import com.clarkparsia.fourstore.api.Format;
-import com.clarkparsia.fourstore.api.results.Binding;
+
 import com.clarkparsia.fourstore.api.QueryException;
-import com.clarkparsia.fourstore.api.results.ResultSet;
+
 import com.clarkparsia.fourstore.api.Store;
 import com.clarkparsia.fourstore.impl.StoreFactory;
-import com.clarkparsia.fourstore.impl.TabbedResultSetFormatter;
-import com.clarkparsia.fourstore.impl.sesame.SesameToFourStore;
-import org.openrdf.sesame.constants.RDFFormat;
+
+import com.clarkparsia.openrdf.OpenRdfIO;
+import com.clarkparsia.openrdf.ExtGraph;
+import com.clarkparsia.openrdf.OpenRdfUtil;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.StringReader;
 import java.net.URL;
+
+import org.openrdf.rio.RDFFormat;
+import org.openrdf.model.impl.ValueFactoryImpl;
+import org.openrdf.model.URI;
+import org.openrdf.query.TupleQueryResult;
+import org.openrdf.query.BindingSet;
+import org.openrdf.query.QueryEvaluationException;
 
 /**
  * <p>Simple set of tests for the API</p>
@@ -88,11 +93,11 @@ public class Test {
 		System.err.println(aStore.size());
 
 		// try adding some data
-		aStore.add(getDataToAdd(), Format.Turtle, null);
+		aStore.add(getDataToAdd(), RDFFormat.TURTLE, null);
 
 		verifyAdd(aStore, null, getDataToAdd());
 
-		aStore.add(getOtherDataToAdd(), Format.Turtle, getGraphURI());
+		aStore.add(getOtherDataToAdd(), RDFFormat.TURTLE, getGraphURI());
 
 		verifyAdd(aStore, getGraphURI(), getOtherDataToAdd());
 
@@ -134,16 +139,16 @@ public class Test {
 		// TODO: try removing invalid data
 
 		// try updating some data
-		aStore.add(getDataToAdd(), Format.Turtle, getGraphURI());
+		aStore.add(getDataToAdd(), RDFFormat.TURTLE, getGraphURI());
 		verifyAdd(aStore, getGraphURI(), getDataToAdd());
 
 		// TODO: i assume adding to an existing named graph overwrites?
-		aStore.add(getOtherDataToAdd(), Format.Turtle, getGraphURI());
+		aStore.add(getOtherDataToAdd(), RDFFormat.TURTLE, getGraphURI());
 
 		verifyAdd(aStore, getGraphURI(), getOtherDataToAdd());
 		verifyDelete(aStore, getGraphURI(), getDataToAdd());
 
-		aStore.append(getDataToAdd(), Format.Turtle, getGraphURI());
+		aStore.append(getDataToAdd(), RDFFormat.TURTLE, getGraphURI());
 		verifyAdd(aStore, getGraphURI(), getDataToAdd());
 		verifyAdd(aStore, getGraphURI(), getOtherDataToAdd());
 
@@ -156,19 +161,18 @@ public class Test {
 			throw new Exception("setting soft limit did not work");
 		}
 
-		ResultSet aResults = aStore.query(aQuery);
+		TupleQueryResult aResults = aStore.query(aQuery);
 
-		System.err.println("There are " + aResults.size() + " results.");
 
-		for (Binding aBinding : aResults) {
-			System.err.println("p = " + aBinding.get("p"));
+		for (BindingSet aBinding : OpenRdfUtil.iterable(aResults)) {
+			System.err.println("p = " + aBinding.getValue("p"));
 		}
 
 		aQuery = "select ?uri ?aLabel where {?s rdf:type ?type. ?s rdfs:label ?aLabel.}";
 
 		aResults = aStore.query(aQuery);
 
-		System.err.println(new TabbedResultSetFormatter().format(aResults));
+		System.err.println(format(aResults));
 
 		aQuery = "This is not a valid query";
 
@@ -198,12 +202,12 @@ public class Test {
 		return IOUtil.getFileAsString("test" + File.separator + "data2.ttl");
 	}
 
-	private static java.net.URI getGraphURI() {
-		return java.net.URI.create("http://example.org/graph");
+	private static URI getGraphURI() {
+		return ValueFactoryImpl.getInstance().createURI("http://example.org/graph");
 	}
 
-	private static void verifyAdd(Store theStore, java.net.URI theGraph, String theData) throws Exception {
-		ExtendedGraph aGraph = SesameIO.readGraph(new StringReader(theData), RDFFormat.TURTLE);
+	private static void verifyAdd(Store theStore, URI theGraph, String theData) throws Exception {
+		ExtGraph aGraph = OpenRdfIO.readGraph(new StringReader(theData), RDFFormat.TURTLE);
 
 		for (org.openrdf.model.Statement aStmt : aGraph) {
 			if (aStmt.getSubject() instanceof org.openrdf.model.BNode || aStmt.getObject() instanceof org.openrdf.model.BNode) {
@@ -212,14 +216,14 @@ public class Test {
 				continue;
 			}
 
-			if (!theStore.hasStatement(SesameToFourStore.toStatement(aStmt))) {
+			if (!theStore.hasStatement(aStmt)) {
 				throw new Exception("Add failed? missing: " + aStmt);
 			}
 		}
 	}
 
-	private static void verifyDelete(Store theStore, java.net.URI theGraph, String theData) throws Exception {
-		ExtendedGraph aGraph = SesameIO.readGraph(new StringReader(theData), RDFFormat.TURTLE);
+	private static void verifyDelete(Store theStore, URI theGraph, String theData) throws Exception {
+		ExtGraph aGraph = OpenRdfIO.readGraph(new StringReader(theData), RDFFormat.TURTLE);
 
 		for (org.openrdf.model.Statement aStmt : aGraph) {
 			if (aStmt.getSubject() instanceof org.openrdf.model.BNode || aStmt.getObject() instanceof org.openrdf.model.BNode) {
@@ -228,7 +232,7 @@ public class Test {
 				continue;
 			}
 			
-			if (theStore.hasStatement(SesameToFourStore.toStatement(aStmt))) {
+			if (theStore.hasStatement(aStmt)) {
 				throw new Exception("delete failed?");
 			}
 		}
@@ -236,8 +240,45 @@ public class Test {
 
 	private static int getExpectedSize() throws Exception {
 		// yes, this is not very efficient...
-		return SesameIO.readGraph(new FileInputStream("test" + File.separator + "data1.ttl"), RDFFormat.TURTLE).numStatements() +
-			   SesameIO.readGraph(new FileInputStream("test" + File.separator + "data2.ttl"), RDFFormat.TURTLE).numStatements();
+		return OpenRdfIO.readGraph(new FileInputStream("test" + File.separator + "data1.ttl"), RDFFormat.TURTLE).size() +
+			   OpenRdfIO.readGraph(new FileInputStream("test" + File.separator + "data2.ttl"), RDFFormat.TURTLE).size();
 
+	}
+
+	private static String format(final TupleQueryResult theResultSet) {
+		StringBuffer aBuffer = new StringBuffer();
+
+		try {
+			if (!theResultSet.hasNext()) {
+				aBuffer.append("*** No Results ***");
+			}
+			else {
+				// TODO: use some of the text formatting stuff to get the columns to properly align
+
+				boolean aNeedsHeader = true;
+				for (BindingSet aBinding : OpenRdfUtil.iterable(theResultSet)) {
+					if (aNeedsHeader) {
+						for (String aVar : aBinding.getBindingNames()) {
+							aBuffer.append(aVar);
+							aBuffer.append("\t");
+						}
+						aBuffer.append("\n---\n");
+
+						aNeedsHeader = false;
+					}
+
+					for (String aVar : aBinding.getBindingNames()) {
+						aBuffer.append(aBinding.getValue(aVar));
+						aBuffer.append("\t");
+					}
+					aBuffer.append("\n");
+				}
+			}
+		}
+		catch (QueryEvaluationException e) {
+			throw new RuntimeException(e);
+		}
+
+		return aBuffer.toString();
 	}
 }

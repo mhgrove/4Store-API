@@ -16,7 +16,7 @@
 package com.clarkparsia.fourstore.impl;
 
 import com.clarkparsia.fourstore.api.Store;
-import com.clarkparsia.fourstore.impl.StoreImpl;
+
 import com.clarkparsia.utils.web.Method;
 
 import java.net.URL;

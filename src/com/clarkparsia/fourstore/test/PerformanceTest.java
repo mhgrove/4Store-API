@@ -15,23 +15,13 @@
 
 package com.clarkparsia.fourstore.test;
 
-import com.clarkparsia.fourstore.api.QueryException;
 import com.clarkparsia.fourstore.api.Store;
-
-import com.clarkparsia.fourstore.api.results.ResultSet;
-
-import com.clarkparsia.fourstore.impl.StoreFactory;
-import com.clarkparsia.fourstore.impl.TabbedResultSetFormatter;
-import com.clarkparsia.utils.web.Method;
-
-import java.net.URL;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Random;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
+
+import org.openrdf.query.TupleQueryResult;
 
 /**
  * <p>Simple Performance Tests</p>
@@ -61,7 +51,10 @@ public class PerformanceTest {
                 else {
                     aStart = System.currentTimeMillis();
 
-                    ResultSet aResult = theRepo.query(aQuery);
+                    TupleQueryResult aResult = theRepo.query(aQuery);
+					while (aResult.hasNext()) {
+						aResult.next();
+					}
 
 					aEnd = System.currentTimeMillis();
                 }

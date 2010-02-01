@@ -15,13 +15,15 @@
 
 package com.clarkparsia.fourstore.api;
 
-import com.clarkparsia.fourstore.api.rdf.Graph;
-import com.clarkparsia.fourstore.api.rdf.Resource;
-import com.clarkparsia.fourstore.api.rdf.Statement;
-import com.clarkparsia.fourstore.api.rdf.URI;
-import com.clarkparsia.fourstore.api.rdf.Value;
+import org.openrdf.model.Graph;
+import org.openrdf.model.Resource;
+import org.openrdf.model.Statement;
+import org.openrdf.model.URI;
+import org.openrdf.model.Value;
 
-import com.clarkparsia.fourstore.api.results.ResultSet;
+import org.openrdf.query.TupleQueryResult;
+
+import org.openrdf.rio.RDFFormat;
 
 import java.net.ConnectException;
 
@@ -58,7 +60,7 @@ public interface Store {
 	 * store is being used.
 	 * @return the soft limit, or -1 if not specified.
 	 * @see #setSoftLimit
-	 * @see <http://4store.org/trac/wiki/Query>
+	 * @see &lt;http://4store.org/trac/wiki/Query&gt;
 	 */
 	public int getSoftLimit();
 
@@ -83,7 +85,7 @@ public interface Store {
 	public boolean hasStatement(Resource theSubj, URI thePred, Value theObj) throws StoreException;
 
 
-	public ResultSet query(String theQuery) throws QueryException;
+	public TupleQueryResult query(String theQuery) throws QueryException;
 	public Graph constructQuery(String theQuery) throws QueryException;
 	public Graph describe(URI theConcept) throws QueryException;
 	public boolean ask(URI theConcept) throws QueryException;
@@ -92,13 +94,12 @@ public interface Store {
 	// a string.  this way the inputstream can be written directly to the HTTP connection rather than being in a
 	// string which requires all of it to be in memory
 
-	public boolean add(String theGraph, Format theFormat, java.net.URI theGraphURI) throws StoreException;
+	public boolean add(String theGraph, RDFFormat theFormat, URI theGraphURI) throws StoreException;
 
-	// TODO: why is this not supported??
-//	public boolean delete(String theGraph, Format theFormat, java.net.URI theGraphURI) throws StoreException;
-	public boolean delete(java.net.URI theGraphURI) throws StoreException;
+	public boolean delete(String theGraph, RDFFormat theFormat, URI theGraphURI) throws StoreException;
+	public boolean delete(URI theGraphURI) throws StoreException;
 
-	public boolean append(String theGraph, Format theFormat, java.net.URI theGraphURI) throws StoreException;
+	public boolean append(String theGraph, RDFFormat theFormat, URI theGraphURI) throws StoreException;
 
 	/**
 	 * Return the number of triples in this Store

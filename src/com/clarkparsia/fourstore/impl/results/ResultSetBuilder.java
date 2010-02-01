@@ -15,14 +15,18 @@
 
 package com.clarkparsia.fourstore.impl.results;
 
-import com.clarkparsia.fourstore.api.rdf.Value;
-import com.clarkparsia.fourstore.api.rdf.ValueFactory;
+import com.clarkparsia.utils.collections.CollectionUtil;
 
-import com.clarkparsia.fourstore.api.results.Binding;
-import com.clarkparsia.fourstore.api.results.ResultSet;
+import org.openrdf.model.Value;
+import org.openrdf.model.ValueFactory;
+
+import org.openrdf.query.BindingSet;
+import org.openrdf.query.impl.MapBindingSet;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * <p>Builder class for creating a 4Store ResultSet</p>
@@ -31,8 +35,8 @@ import java.util.Collection;
  * @since 0.1
  */
 public class ResultSetBuilder {
-	private Collection<Binding> mValues = new ArrayList<Binding>();
-	private BindingBuilder mCurrBinding = new BindingBuilder();
+	private Collection<BindingSet> mValues = new ArrayList<BindingSet>();
+	private MapBindingSet mCurrBinding = new MapBindingSet();
 	private ValueFactory mFactory;
 
 	public ResultSetBuilder(final ValueFactory theFactory) {
@@ -47,12 +51,11 @@ public class ResultSetBuilder {
 		reset();
 	}
 
-	public ResultSet endResultSet() {
-		return resultSet();
+	public void endResultSet() {
 	}
 
 	public void startBinding() {
-		mCurrBinding.reset();
+		mCurrBinding = new MapBindingSet();
 	}
 
 	public ValueFactory getValueFactory() {
@@ -60,14 +63,25 @@ public class ResultSetBuilder {
 	}
 
 	public void endBinding() {
-		mValues.add(mCurrBinding.binding());
+		mValues.add(mCurrBinding);
 	}
 
-	public BindingBuilder addToBinding(String theKey, Value theValue) {
-		return mCurrBinding.append(theKey, theValue);
+	public ResultSetBuilder addToBinding(String theKey, Value theValue) {
+		mCurrBinding.addBinding(theKey, theValue);
+
+        return this;
 	}
 
-	public ResultSet resultSet() {
-		return new ResultSetImpl(mValues);
-	}
+    public Collection<BindingSet> bindingSet() {
+        return mValues;
+    }
+
+    public List<String> bindingNames() {
+        if (mValues.isEmpty()) {
+            return Collections.emptyList();
+        }
+        else {
+            return CollectionUtil.list(mValues.iterator().next().getBindingNames());
+        }
+    }
 }
