@@ -105,9 +105,9 @@
         <delete dir="${dist}" />
     </target>
 
-    <target name="dist-zip" depends="dist">
-        <zip destfile="${dist}/${project.name}-${DSTAMP}.zip">
-	    <zipfileset dir="${dist}">
+    <target name="zip" depends="dist">
+        <zip destfile="${dist}/${project.name}-${project.version}-${DSTAMP}.zip">
+	    <zipfileset dir="${dist}" prefix="${project.name}-${project.version}">
 	    <include name="**/*"/>
 	    <exclude name="**/src/**"/>
 	    <exclude name="**/*.zip"/>
