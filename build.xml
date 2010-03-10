@@ -25,7 +25,8 @@
     <property name="dist" location="dist" />
 
     <property name="project.name" value="cp-common-fourstore" />
-    <property name="project.version" value="0.2" />
+	<property name="mainclass" value="com.clarkparsia.fourstore.cli.Console" />
+    <property name="project.version" value="0.3" />
 
     <path id="project.class.path">
         <pathelement location="lib/" />
@@ -71,6 +72,12 @@
             </fileset>
         </copy>
 
+        <copy todir="${dist}">
+            <fileset dir=".">
+                <include name="4store.sh" />
+            </fileset>
+        </copy>
+
         <copy todir="${dist}/lib">
             <fileset dir="lib">
                 <include name="**/*.jar" />
@@ -95,9 +102,15 @@
         </pathconvert>
 
         <echo>${Class-Path}</echo>
+
         <!-- Make Jar file. -->
         <jar jarfile="${dist}/lib/${project.name}-${project.version}.jar"
-             basedir="${build}"/>
+             basedir="${build}">
+            <manifest>
+                <attribute name="Main-Class" value="${mainclass}"/>
+                <attribute name="Class-Path" value="${Class-Path}" />
+            </manifest>
+		</jar>
     </target>
 
     <target name="clean" description="Clean up build files">
@@ -114,4 +127,25 @@
 	        </zipfileset>
 		</zip>
     </target>
+
+
+	<target name="test" depends="dist">
+		<mkdir dir="dist/test-reports"/>
+  		<junit fork="yes" printsummary="no" haltonfailure="no">
+            <jvmarg value="-Xmx1024m"/>
+
+            <test name="com.clarkparsia.fourstore.test.FourStoreAPITestSuite" outfile="dist/test-reports/report"/>
+
+    		<formatter type="xml" />
+
+    		<classpath refid="project.class.path"/>
+  		</junit>
+
+  		<junitreport todir="dist/test-reports">
+    		<fileset dir="dist/test-reports">
+      			<include name="TEST-*.xml" />
+    		</fileset>
+    		<report todir="dist/test-reports" />
+  		</junitreport>
+	</target>
 </project>

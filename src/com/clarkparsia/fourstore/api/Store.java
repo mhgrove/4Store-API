@@ -24,8 +24,11 @@ import org.openrdf.model.Value;
 import org.openrdf.query.TupleQueryResult;
 
 import org.openrdf.rio.RDFFormat;
+import org.openrdf.repository.RepositoryResult;
 
 import java.net.ConnectException;
+import java.io.InputStream;
+import java.io.Reader;
 
 /**
  * <p>Interface to interact with a 4Store instance.  Instances of this interface can be obtained from
@@ -33,6 +36,7 @@ import java.net.ConnectException;
  *
  * @author Michael Grove
  * @since 0.1
+ * @version 0.3
  */
 public interface Store {
 	/**
@@ -84,22 +88,53 @@ public interface Store {
 	 */
 	public boolean hasStatement(Resource theSubj, URI thePred, Value theObj) throws StoreException;
 
+	/**
+	 * Returns an iterator result over the set of statements which match the specified SPO pattern.
+	 * @param theSubj the subject of the statement, or null for any subject
+	 * @param thePred the predicate of the statement, or null for any predicate
+	 * @param theObj the object of the statement, or null for any predicate
+	 * @return an iterator over all matching statements
+	 * @throws StoreException if there is an error while querying for the statements
+	 */
+	public RepositoryResult<Statement> getStatements(final Resource theSubj, final URI thePred, final Value theObj) throws StoreException;
 
+	/**
+	 * Send a select query to the endpoint.
+	 * @param theQuery the query to execute
+	 * @return the results of the select query
+	 * @throws QueryException if there is an error while evaluating the query
+	 */
 	public TupleQueryResult query(String theQuery) throws QueryException;
 	public Graph constructQuery(String theQuery) throws QueryException;
-	public Graph describe(URI theConcept) throws QueryException;
-	public boolean ask(URI theConcept) throws QueryException;
+	public Graph describe(String theQuery) throws QueryException;
 
-	// TODO: for these operations that modify the data, add methods which take an InputStream rather than
-	// a string.  this way the inputstream can be written directly to the HTTP connection rather than being in a
-	// string which requires all of it to be in memory
 
+	public boolean add(Graph theGraph, URI theGraphURI) throws StoreException;
 	public boolean add(String theGraph, RDFFormat theFormat, URI theGraphURI) throws StoreException;
+	public boolean add(InputStream theGraph, RDFFormat theFormat, URI theGraphURI) throws StoreException;
 
-	public boolean delete(String theGraph, RDFFormat theFormat, URI theGraphURI) throws StoreException;
+	public boolean delete(Graph theGraph, URI theGraphURI) throws StoreException;
+
+	/**
+	 * Delete's the entire named subgraph
+	 * @param theGraphURI the URI of the named graph to remove
+	 * @return true if the graph was removed, false otherwise
+	 * @throws StoreException if there is an error while removing
+	 */
 	public boolean delete(URI theGraphURI) throws StoreException;
 
+	public boolean append(Graph theGraph, URI theGraphURI) throws StoreException;
 	public boolean append(String theGraph, RDFFormat theFormat, URI theGraphURI) throws StoreException;
+
+	/**
+	 * Adds the RDF data to the store in an existing context.
+	 * @param theGraph an input stream containing the data to add
+	 * @param theFormat the format the rdf data is in
+	 * @param theGraphURI the graph context to add the data to
+	 * @return true if data was successfully added, false otherwise
+	 * @throws StoreException if there is an error appending the data to an existing context
+	 */
+	public boolean append(InputStream theGraph, RDFFormat theFormat, URI theGraphURI) throws StoreException;
 
 	/**
 	 * Return the number of triples in this Store

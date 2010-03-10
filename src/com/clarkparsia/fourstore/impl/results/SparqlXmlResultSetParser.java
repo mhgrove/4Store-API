@@ -28,6 +28,7 @@ import java.util.Collection;
  *
  * @author Michael Grove
  * @since 0.1
+ * @version 0.3
  */
 public class SparqlXmlResultSetParser extends DefaultHandler {
 	private ResultSetBuilder mResults;
@@ -36,18 +37,20 @@ public class SparqlXmlResultSetParser extends DefaultHandler {
     private String mBindingName;
     private String mLang;
     private String mDatatype;
+	private Boolean mBooleanResult = null;
 
     private static final String RESULTS = "http://www.w3.org/2005/sparql-results#results";
     private static final String RESULT = "http://www.w3.org/2005/sparql-results#result";
     private static final String BINDING = "http://www.w3.org/2005/sparql-results#binding";
     private static final String TYPE_LITERAL = "http://www.w3.org/2005/sparql-results#literal";
     private static final String TYPE_BNODE = "http://www.w3.org/2005/sparql-results#bnode";
+	private static final String BOOLEAN_RESULT = "http://www.w3.org/2005/sparql-results#boolean";
     private static final String TYPE_URI = "http://www.w3.org/2005/sparql-results#uri";
     private static final String NAME = "name";
     private static final String LANG = "xml:lang";
     private static final String DATATYPE = "datatype";
 
-    public SparqlXmlResultSetParser(ResultSetBuilder theBuilder) {
+	public SparqlXmlResultSetParser(ResultSetBuilder theBuilder) {
 		mResults = theBuilder;
 	}
 
@@ -56,6 +59,7 @@ public class SparqlXmlResultSetParser extends DefaultHandler {
 	 */
 	@Override
     public void startDocument() {
+		mBooleanResult = null;
         mResults.startResultSet();
     }
 
@@ -99,6 +103,9 @@ public class SparqlXmlResultSetParser extends DefaultHandler {
         else if (aURI.equals(RESULT)) {
 			mResults.startBinding();
         }
+		else if (aURI.equals(BOOLEAN_RESULT)) {
+			mElementString = "";
+		}
     }
 
 	@Override
@@ -108,6 +115,9 @@ public class SparqlXmlResultSetParser extends DefaultHandler {
         if (aURI.equals(RESULT)) {
 			mResults.endBinding();
         }
+		else if (aURI.equals(BOOLEAN_RESULT)) {
+			mBooleanResult = Boolean.valueOf(mElementString.trim());
+		}
         else if (aURI.equals(TYPE_URI)) {
 			mResults.addToBinding(mBindingName, mResults.getValueFactory().createURI(mElementString));
         }
@@ -133,6 +143,10 @@ public class SparqlXmlResultSetParser extends DefaultHandler {
 
 	@Override
     public void characters(char[] theChars, int theStart, int theLength) {
+		if (mElementString == null) {
+			mElementString = "";
+		}
+
         StringBuffer aBuffer = new StringBuffer();
 
         for (int i = 0; i < theLength; i++)
@@ -140,4 +154,8 @@ public class SparqlXmlResultSetParser extends DefaultHandler {
 
         mElementString += aBuffer.toString();
     }
+
+	public boolean booleanResult() {
+		return mBooleanResult == null ? false : mBooleanResult;
+	}
 }
