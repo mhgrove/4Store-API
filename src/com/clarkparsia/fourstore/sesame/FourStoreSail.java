@@ -11,13 +11,14 @@ import java.net.ConnectException;
 
 import com.clarkparsia.fourstore.api.Store;
 import com.clarkparsia.fourstore.impl.StoreFactory;
+import com.clarkparsia.utils.web.Method;
 
 /**
  * <p>Implementation of a Sesame Sail which is backed by an instance of 4Store.</p>
  *
  * @author Michael Grove
  * @since 0.3
- * @version 0.3
+ * @version 0.3.1
  */
 public class FourStoreSail extends NotifyingSailBase {
 
@@ -37,6 +38,15 @@ public class FourStoreSail extends NotifyingSailBase {
 	 */
 	public FourStoreSail(URL theURL) {
 		mStore = StoreFactory.create(theURL);
+	}
+
+	/**
+	 * Create a new FourStoreSail
+	 * @param theURL the URL of the 4store instance
+	 * @param theUseGet whether or not to use GET when sending sparql query requests
+	 */
+	public FourStoreSail(URL theURL, boolean theUseGet) {
+		mStore = StoreFactory.create(theURL, theUseGet ? Method.GET : Method.POST);
 	}
 
 	/**

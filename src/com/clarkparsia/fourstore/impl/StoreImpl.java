@@ -94,8 +94,14 @@ public class StoreImpl implements Store {
 
 	private int mSoftLimit;
 
-//	private URL mBaseURL;
+	/**
+	 * Whether or not this data source is connected
+	 */
+	private boolean mIsConnected;
 
+	/**
+	 * The HTTP resource representing the remote 4store database
+	 */
 	private HttpResource mFourStoreResource;
 
 	/**
@@ -112,6 +118,8 @@ public class StoreImpl implements Store {
 
 		mFourStoreResource = new HttpResourceImpl(theBaseURL);
 
+		mIsConnected = false;
+
 		// TODO: don't allow operations until you are connected
 	}
 
@@ -121,6 +129,13 @@ public class StoreImpl implements Store {
 	 */
 	StoreImpl(URL theURL) {
 		this(theURL, false);
+	}
+
+	/**
+	 * @inheritDoc
+	 */
+	public URL getURL() {
+		return mFourStoreResource.url();
 	}
 
 	/**
@@ -220,6 +235,8 @@ public class StoreImpl implements Store {
 				throw new ConnectException("There was an error connecting to the store: " +
 										   aResp.getMessage() + "\n" + aResp.getContent());
 			}
+
+			mIsConnected = true;
 		}
 		catch (IOException e) {
 			throw new ConnectException(e.getMessage());
@@ -227,10 +244,21 @@ public class StoreImpl implements Store {
 	}
 
 	/**
+	 * Enforce an "open" connection to use the database
+	 * @throws IllegalArgumentException if there is no open connection.
+	 */
+	private void assertConnected() {
+		if (!mIsConnected) {
+			throw new IllegalArgumentException("You must be connected in order to query the database");
+		}
+	}
+
+	/**
 	 * @inheritDoc
 	 */
 	public void disconnect() throws ConnectException {
-		// no clean-up needed
+		mIsConnected = false;
+		// no other clean-up needed
 	}
 
 	/**

@@ -287,7 +287,7 @@ public class FourStoreRepositoryConnection extends SailRepositoryConnection {
 	 * Extends the Sesame SailGraphQuery to circumvent their naive query implementation and operate directly on the
 	 * underlying four store sail so the queries go straight to 4store instead of through the Sesame layer.
 	 */
-	private class FourStoreSailGraphQuery extends SailGraphQuery {
+	private static class FourStoreSailGraphQuery extends SailGraphQuery {
 
 		/**
 		 * Create a new FourStoreSailGraphQuery
@@ -339,7 +339,7 @@ public class FourStoreRepositoryConnection extends SailRepositoryConnection {
 	 * Etends the Sesame SailTupleQuery to circumvent their naive query implementation to dispatch the query directly
 	 * to 4store via the underlying fourstore sail.
 	 */
-	private class FourStoreSailTupleQuery extends SailTupleQuery {
+	private static class FourStoreSailTupleQuery extends SailTupleQuery {
 
 		/**
 		 * Create a new FourStoreSailTupleQuery

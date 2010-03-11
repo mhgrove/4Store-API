@@ -80,6 +80,8 @@ import org.slf4j.Logger;
  * @author Michael Grove
  * @version 0.3
  * @since 0.3
+ *
+ * @see FourStoreSail
  */
 public class FourStoreSailConnection extends NotifyingSailConnectionBase {
 
@@ -191,7 +193,8 @@ public class FourStoreSailConnection extends NotifyingSailConnectionBase {
 	 * @inheritDoc
 	 */
 	protected CloseableIteration<? extends Statement, SailException> getStatementsInternal(final Resource theSubj, final URI thePred, final Value theObj, final boolean theInfer, final Resource... theResources) throws SailException {
-		String aQuery = "construct { ?s ?p ?o } where { ";
+		StringBuffer aQuery = new StringBuffer("construct { ?s ?p ?o } where { ");
+
 		String aFilters = "";
 		String aWhere = " ?s ?p ?o.";
 
@@ -208,18 +211,18 @@ public class FourStoreSailConnection extends NotifyingSailConnectionBase {
 		}
 
 		if (theResources.length == 0) {
-			aQuery += aWhere + "\n" + aFilters;
+			aQuery.append(aWhere).append("\n").append(aFilters);
 		}
 		else {
 			for (Resource aContext : theResources) {
-				aQuery += "graph " + SesameQueryUtils.getQueryString(aContext) + " { " + aWhere + " " + aFilters + "}.\n";
+				aQuery.append("graph ").append(SesameQueryUtils.getQueryString(aContext)).append(" { ").append(aWhere).append(" ").append(aFilters).append("}.\n");
 			}
 		}
 
-		aQuery += "}";
+		aQuery.append("}");
 
 		try {
-			Graph aGraph = mStore.constructQuery(aQuery);
+			Graph aGraph = mStore.constructQuery(aQuery.toString());
 
 			return new CloseableIteratorIteration<Statement, SailException>(aGraph.iterator());
 		}
@@ -632,7 +635,7 @@ public class FourStoreSailConnection extends NotifyingSailConnectionBase {
 		}
 	}
 
-	private class FileBufferedInputStream extends InputStream {
+	private static class FileBufferedInputStream extends InputStream {
 		private InputStream mStream;
 		private File mFile;
 		private OutputStream mOut;

@@ -11,6 +11,11 @@ import java.net.URL;
  * <p>Extends the normal Sesame SailRepository to provide a Repository implementation for 4store.</p>
  *
  * @author Michael Grove
+ * @since 0.3
+ * @version 0.3.1
+ *
+ * @see FourStoreSail
+ * @see FourStoreRepositoryConnection
  */
 public class FourStoreSailRepository extends SailRepository {
 
@@ -28,6 +33,15 @@ public class FourStoreSailRepository extends SailRepository {
 	 */
 	public FourStoreSailRepository(URL theURL) {
 		super(new FourStoreSail(theURL));
+	}
+
+	/**
+	 * Create a new FourStoreSailRepository
+	 * @param theURL the URL of the 4Store instance
+	 * @param theUseGet whether or not to use GET requests for SPARQL queries.
+	 */
+	public FourStoreSailRepository(URL theURL, boolean theUseGet) {
+		super(new FourStoreSail(theURL, theUseGet));
 	}
 
 	/**

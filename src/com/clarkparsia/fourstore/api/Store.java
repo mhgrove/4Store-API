@@ -27,6 +27,7 @@ import org.openrdf.rio.RDFFormat;
 import org.openrdf.repository.RepositoryResult;
 
 import java.net.ConnectException;
+import java.net.URL;
 import java.io.InputStream;
 import java.io.Reader;
 
@@ -36,7 +37,7 @@ import java.io.Reader;
  *
  * @author Michael Grove
  * @since 0.1
- * @version 0.3
+ * @version 0.3.1
  */
 public interface Store {
 	/**
@@ -123,7 +124,23 @@ public interface Store {
 	 */
 	public boolean delete(URI theGraphURI) throws StoreException;
 
+	/**
+	 * Append the provided graph to the named graph context
+	 * @param theGraph the graph to add
+	 * @param theGraphURI the named context to add the graph to, or null to add it to the default context
+	 * @return true if the operation was successful, false otherwise
+	 * @throws StoreException throw if there is an error while appending
+	 */
 	public boolean append(Graph theGraph, URI theGraphURI) throws StoreException;
+
+	/**
+	 * Append the graph to the named graph context
+	 * @param theGraph the RDF graph data to add
+	 * @param theFormat the RDF syntax the graph data is in
+	 * @param theGraphURI the named context to add the graph to, or null to add it to the default context
+	 * @return true if the operation was successful, false otherwise
+	 * @throws StoreException if there is an error while appending
+	 */
 	public boolean append(String theGraph, RDFFormat theFormat, URI theGraphURI) throws StoreException;
 
 	/**
@@ -149,4 +166,10 @@ public interface Store {
 	 * @throws StoreException thrown if the status cannot be retrieved from the server.
 	 */
 	public String status() throws StoreException;
+
+	/**
+	 * Return the URL of this 4store instance
+	 * @return the db URL
+	 */
+	public URL getURL();
 }
