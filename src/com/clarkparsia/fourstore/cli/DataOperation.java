@@ -16,7 +16,7 @@ public interface DataOperation extends StoreCmd {
 	public String getGraph();
 	public boolean isGraph();
 
-	@Option(shortName="f", longName="format", defaultValue="RDFXML", description="RDF Format [NTRIPLES, RDFXML, TURTLE]")
+	@Option(shortName="f", longName="format", defaultValue="RDF/XML", description="RDF Format [NTRIPLES, RDF/XML, TURTLE]")
 	public String getRDFFormat();
 	public boolean isRDFFormat();
 
