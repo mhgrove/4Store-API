@@ -1,0 +1,33 @@
+#!/bin/sh
+#
+# Linux startup script for 4store
+# chkconfig: 2345 99 20
+# description: Run an 4store backend and sparql http server
+# processname: 4store
+#
+# To install, configure this file as needed and copy
+# to /etc/rc.d/init.d as 4store.  Then use "# /sbin/chkconfig 4store reset"
+
+KB="pops"
+PORT="9000"
+
+case "$1" in
+  start)
+	echo "Starting 4store"
+	4s-backend $KB
+	4s-httpd -p $PORT $KB
+	;;
+  stop)
+	killall "4s-httpd"
+	pkill -f '^4s-backend'
+	;;
+  restart)
+	$0 stop
+	$0 start
+	;;
+  *)
+	echo "Usage: $0 {start|stop|restart}"
+	exit 1
+esac
+
+exit 0
