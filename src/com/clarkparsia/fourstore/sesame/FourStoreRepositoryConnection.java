@@ -145,7 +145,7 @@ public class FourStoreRepositoryConnection extends SailRepositoryConnection {
 	 */
 	@Override
 	public void add(final InputStream theInputStream, final String theBaseURI, final RDFFormat theRDFFormat, final Resource... theContexts) throws IOException, RDFParseException, RepositoryException {
-		if (theBaseURI == null || theBaseURI.length() > 0) {
+		if (theBaseURI != null && theBaseURI.length() > 0) {
 			LOGGER.warn("Ignoring specified base URI");
 		}
 		

@@ -131,7 +131,7 @@ public class FourStoreSailConnection extends NotifyingSailConnectionBase {
 
 		mStore = theSail.getFourStore();
 
-		mTransactionSupport = new NaiveTransactionSupport(this);
+		mTransactionSupport = new NoOpTransactionSupport();
 
 		addConnectionListener(mTransactionSupport);
 

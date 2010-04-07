@@ -63,7 +63,7 @@ public class Console {
 		OPTION_TO_CMD.put(Add.class, new AddCommand());
 		OPTION_TO_CMD.put(Size.class, new SizeCommand());
 
-//      String[] aFakeArgs = new String[] { "help" };
+//      String[] aFakeArgs = new String[] { "query", "--help" };
 //		String[] aFakeArgs = new String[] { "help", "query" };
 //		String[] aFakeArgs = new String[] { "query", "--url", "http://vx.int.clarkparsia.com:8000" , "-q", "select ?s where { ?s ?p ?o } limit 5"};
 //		String[] aFakeArgs = new String[] { "size", "--url", "http://vx.int.clarkparsia.com:8000" };
@@ -83,7 +83,6 @@ public class Console {
 			}
 		}
 		catch (ArgumentValidationException e) {
-			System.err.println("validate error");
 			System.out.println(e.getMessage());
 		}
 	}
