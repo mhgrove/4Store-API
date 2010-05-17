@@ -19,30 +19,23 @@ import com.clarkparsia.fourstore.api.QueryException;
 import com.clarkparsia.fourstore.api.Store;
 import com.clarkparsia.fourstore.api.StoreException;
 
-import com.clarkparsia.fourstore.impl.results.SparqlXmlResultSetParser;
-import com.clarkparsia.fourstore.impl.results.ResultSetBuilder;
+import com.clarkparsia.openrdf.query.results.SparqlXmlResultSetParser;
 
 import com.clarkparsia.openrdf.OpenRdfIO;
 import com.clarkparsia.openrdf.query.SesameQueryUtils;
 
-import org.openrdf.model.BNode;
 import org.openrdf.model.Graph;
-import org.openrdf.model.Literal;
 import org.openrdf.model.Resource;
 import org.openrdf.model.Statement;
 import org.openrdf.model.URI;
 import org.openrdf.model.Value;
 
-import org.openrdf.model.impl.ValueFactoryImpl;
 import org.openrdf.model.impl.StatementImpl;
 
 import org.openrdf.query.QueryEvaluationException;
 import org.openrdf.query.TupleQueryResult;
-import org.openrdf.query.QueryResult;
 
 import org.openrdf.query.resultio.TupleQueryResultFormat;
-
-import org.openrdf.query.impl.TupleQueryResultImpl;
 
 import org.openrdf.rio.RDFFormat;
 import org.openrdf.rio.RDFParseException;
@@ -70,7 +63,6 @@ import java.io.StringReader;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.io.StringWriter;
-import java.io.File;
 
 import java.net.ConnectException;
 import java.net.URL;
@@ -84,7 +76,7 @@ import info.aduna.iteration.CloseableIteratorIteration;
  *
  * @author Michael Grove
  * @since 0.1
- * @version 0.3
+ * @version 0.3.1
  */
 public class StoreImpl implements Store {
 	private static final String DEFAULT_SUBGRAPH = "http://clarkparsia.com/4store/repository";
@@ -272,9 +264,7 @@ public class StoreImpl implements Store {
 	 * @inheritDoc
 	 */
 	public TupleQueryResult query(String theQuery) throws QueryException {
-		SparqlXmlResultSetParser aHandler = internalQuery(theQuery);
-
-		return new TupleQueryResultImpl(aHandler.bindingNames(), aHandler.bindingSet());
+		return internalQuery(theQuery).tupleResult();
 	}
 
 //	public void update(String theQuery) throws QueryException {
@@ -344,7 +334,8 @@ public class StoreImpl implements Store {
 				.add(PARAM_SOFT_LIMIT, String.valueOf(getSoftLimit()));
 
 		try {
-			Request aQueryRequest = null;
+			Request aQueryRequest;
+
 			if (mUseGetForQueries) {
 				aQueryRequest = aRes.initGet()
 						.addHeader(HttpHeaders.Accept.getName(), theAccept.getDefaultMIMEType())
@@ -370,7 +361,7 @@ public class StoreImpl implements Store {
 				// <!-- warning: hit complexity limit 2 times, increasing soft limit may give more results -->
 
 				try {
-					SparqlXmlResultSetParser aHandler = new SparqlXmlResultSetParser(new ResultSetBuilder(new ValueFactoryImpl()));
+					SparqlXmlResultSetParser aHandler = new SparqlXmlResultSetParser();
 
 					XMLReader aParser = org.xml.sax.helpers.XMLReaderFactory.createXMLReader();
 
@@ -427,7 +418,7 @@ public class StoreImpl implements Store {
 				.add(PARAM_SOFT_LIMIT, String.valueOf(getSoftLimit()));
 
 		try {
-			Request aQueryRequest = null;
+			Request aQueryRequest;
 
 			if (mUseGetForQueries) {
 				aQueryRequest = aRes.initGet()
