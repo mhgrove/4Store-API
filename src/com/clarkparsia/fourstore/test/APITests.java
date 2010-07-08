@@ -163,9 +163,9 @@ public class APITests {
 			StringBuffer aQuery = new StringBuffer();
 
 			for (Statement aStmt : aDeleteGraph) {
-				aQuery.append(SesameQueryUtils.getQueryString(aStmt.getSubject())).append(" ")
-						.append(SesameQueryUtils.getQueryString(aStmt.getPredicate())).append(" ")
-						.append(SesameQueryUtils.getQueryString(aStmt.getObject())).append(".\n");
+				aQuery.append(SesameQueryUtils.getSPARQLQueryString(aStmt.getSubject())).append(" ")
+						.append(SesameQueryUtils.getSPARQLQueryString(aStmt.getPredicate())).append(" ")
+						.append(SesameQueryUtils.getSPARQLQueryString(aStmt.getObject())).append(".\n");
 			}
 
 			if (aGraphURI != null) {

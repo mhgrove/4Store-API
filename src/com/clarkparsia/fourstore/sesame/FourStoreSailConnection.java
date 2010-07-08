@@ -214,15 +214,15 @@ public class FourStoreSailConnection extends NotifyingSailConnectionBase {
 		String aWhere = " ?s ?p ?o.";
 
 		if (theSubj != null) {
-			aFilters += "filter(?s = " + SesameQueryUtils.getQueryString(theSubj) + "). ";
+			aFilters += "filter(?s = " + SesameQueryUtils.getSPARQLQueryString(theSubj) + "). ";
 		}
 
 		if (thePred != null) {
-			aFilters += "filter(?p = " + SesameQueryUtils.getQueryString(thePred) + "). ";
+			aFilters += "filter(?p = " + SesameQueryUtils.getSPARQLQueryString(thePred) + "). ";
 		}
 
 		if (theObj != null) {
-			aFilters += "filter(?o = " + SesameQueryUtils.getQueryString(theObj) + "). ";
+			aFilters += "filter(?o = " + SesameQueryUtils.getSPARQLQueryString(theObj) + "). ";
 		}
 
 		if (theResources.length == 0) {
@@ -230,7 +230,7 @@ public class FourStoreSailConnection extends NotifyingSailConnectionBase {
 		}
 		else {
 			for (Resource aContext : theResources) {
-				aQuery.append("graph ").append(SesameQueryUtils.getQueryString(aContext)).append(" { ").append(aWhere).append(" ").append(aFilters).append("}.\n");
+				aQuery.append("graph ").append(SesameQueryUtils.getSPARQLQueryString(aContext)).append(" { ").append(aWhere).append(" ").append(aFilters).append("}.\n");
 			}
 		}
 
@@ -261,7 +261,7 @@ public class FourStoreSailConnection extends NotifyingSailConnectionBase {
 
 					// since non-distinct, s should be repeated for every triple its a part of, effectively giving us
 					// the size of the graph w/o doing a construct and parsing the RDF.
-					String aQuery = "select ?s where { graph " + SesameQueryUtils.getQueryString(aContext) + " { ?s ?p ?o } }";
+					String aQuery = "select ?s where { graph " + SesameQueryUtils.getSPARQLQueryString(aContext) + " { ?s ?p ?o } }";
 
 					int aCount = 0;
 					TupleQueryResult aResults = mStore.query(aQuery);

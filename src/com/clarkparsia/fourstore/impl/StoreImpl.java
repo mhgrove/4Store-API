@@ -155,15 +155,15 @@ public class StoreImpl implements Store {
 		String aQuery = "select ?s ?p ?o where { ";
 
 		if (theSubj != null) {
-			aQuery += "filter(?s = " + SesameQueryUtils.getQueryString(theSubj) + "). ";
+			aQuery += "filter(?s = " + SesameQueryUtils.getSPARQLQueryString(theSubj) + "). ";
 		}
 
 		if (thePred != null) {
-			aQuery += "filter(?p = " + SesameQueryUtils.getQueryString(thePred) + "). ";
+			aQuery += "filter(?p = " + SesameQueryUtils.getSPARQLQueryString(thePred) + "). ";
 		}
 
 		if (theObj != null) {
-			aQuery += "filter(?o = " + SesameQueryUtils.getQueryString(theObj) + "). ";
+			aQuery += "filter(?o = " + SesameQueryUtils.getSPARQLQueryString(theObj) + "). ";
 		}
 
 		aQuery += " ?s ?p ?o.} limit 1";
@@ -198,15 +198,15 @@ public class StoreImpl implements Store {
 		String aQuery = "construct { ?s ?p ?o } where { ";
 
 		if (theSubj != null) {
-			aQuery += "filter(?s = " + SesameQueryUtils.getQueryString(theSubj) + "). ";
+			aQuery += "filter(?s = " + SesameQueryUtils.getSPARQLQueryString(theSubj) + "). ";
 		}
 
 		if (thePred != null) {
-			aQuery += "filter(?p = " + SesameQueryUtils.getQueryString(thePred) + "). ";
+			aQuery += "filter(?p = " + SesameQueryUtils.getSPARQLQueryString(thePred) + "). ";
 		}
 
 		if (theObj != null) {
-			aQuery += "filter(?o = " + SesameQueryUtils.getQueryString(theObj) + "). ";
+			aQuery += "filter(?o = " + SesameQueryUtils.getSPARQLQueryString(theObj) + "). ";
 		}
 
 		aQuery += " ?s ?p ?o.}";
@@ -508,9 +508,9 @@ public class StoreImpl implements Store {
 		StringBuffer aQuery = new StringBuffer();
 
 		for (Statement aStmt : theGraph) {
-			aQuery.append(SesameQueryUtils.getQueryString(aStmt.getSubject())).append(" ")
-					.append(SesameQueryUtils.getQueryString(aStmt.getPredicate())).append(" ")
-					.append(SesameQueryUtils.getQueryString(aStmt.getObject())).append(".\n");
+			aQuery.append(SesameQueryUtils.getSPARQLQueryString(aStmt.getSubject())).append(" ")
+					.append(SesameQueryUtils.getSPARQLQueryString(aStmt.getPredicate())).append(" ")
+					.append(SesameQueryUtils.getSPARQLQueryString(aStmt.getObject())).append(".\n");
 		}
 
 		if (theGraphURI != null) {
