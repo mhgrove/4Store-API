@@ -19,8 +19,6 @@ import com.clarkparsia.fourstore.api.QueryException;
 import com.clarkparsia.fourstore.api.Store;
 import com.clarkparsia.fourstore.api.StoreException;
 
-import com.clarkparsia.openrdf.query.results.SparqlXmlResultSetParser;
-
 import com.clarkparsia.openrdf.OpenRdfIO;
 import com.clarkparsia.openrdf.query.SesameQueryUtils;
 
@@ -34,8 +32,11 @@ import org.openrdf.model.impl.StatementImpl;
 
 import org.openrdf.query.QueryEvaluationException;
 import org.openrdf.query.TupleQueryResult;
+import org.openrdf.query.impl.TupleQueryResultBuilder;
 
 import org.openrdf.query.resultio.TupleQueryResultFormat;
+import org.openrdf.query.resultio.QueryResultIO;
+import org.openrdf.query.resultio.TupleQueryResultParser;
 
 import org.openrdf.rio.RDFFormat;
 import org.openrdf.rio.RDFParseException;
@@ -46,16 +47,16 @@ import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
 
-import com.clarkparsia.utils.web.HttpHeaders;
-import com.clarkparsia.utils.web.HttpResource;
-import com.clarkparsia.utils.web.Method;
-import com.clarkparsia.utils.web.MimeTypes;
-import com.clarkparsia.utils.web.ParameterList;
-import com.clarkparsia.utils.web.Request;
-import com.clarkparsia.utils.web.Response;
-import com.clarkparsia.utils.web.HttpResourceImpl;
-import com.clarkparsia.utils.io.Encoder;
-import com.clarkparsia.utils.io.IOUtil;
+import com.clarkparsia.common.web.HttpResource;
+import com.clarkparsia.common.web.HttpResourceImpl;
+import com.clarkparsia.common.web.Response;
+import com.clarkparsia.common.web.Request;
+import com.clarkparsia.common.web.ParameterList;
+import com.clarkparsia.common.web.HttpHeaders;
+import com.clarkparsia.common.web.MimeTypes;
+import com.clarkparsia.common.web.Method;
+import com.google.common.io.ByteStreams;
+import com.google.common.base.Charsets;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -69,6 +70,7 @@ import java.net.URL;
 import java.util.Collections;
 
 import info.aduna.iteration.CloseableIteratorIteration;
+import info.aduna.io.IOUtil;
 
 /**
  * <p>Implementation of Store interface which interacts with a 4Store database over their RESTful HTTP
@@ -264,49 +266,6 @@ public class StoreImpl implements Store {
 	 * @inheritDoc
 	 */
 	public TupleQueryResult query(String theQuery) throws QueryException {
-		return internalQuery(theQuery).tupleResult();
-	}
-
-//	public void update(String theQuery) throws QueryException {
-//		HttpResource aRes = mFourStoreResource.resource("update");
-//
-//		String aQuery = theQuery;
-//
-//		// auto prefix queries w/ rdf and rdfs namespaces
-//		aQuery = "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>\n" +
-//				 "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\n" +
-//				 aQuery;
-//
-//		ParameterList aParams = new ParameterList()
-//				.add("update", aQuery);
-//
-//		try {
-//			Request aQueryRequest = aRes.initPost()
-//					.addHeader(HttpHeaders.ContentType.getName(), MimeTypes.FormUrlEncoded.getMimeType())
-//					.addHeader(HttpHeaders.ContentLength.getName(), Integer.toString(aParams.getURLEncoded().getBytes(Encoder.UTF8.name()).length))
-//					.setBody(aParams.getURLEncoded());
-//
-//			Response aResponse = aQueryRequest.execute();
-//
-//			if (aResponse.hasErrorCode()) {
-//				throw new QueryException(responseToStoreException(aResponse));
-//			}
-//			else {
-//				checkResultsForError(aResponse);
-//			}
-//		}
-//		catch (IOException e) {
-//			throw new QueryException(e);
-//		}
-//	}
-
-	/**
-	 * Dispatch a query to the sparql endpoing of the store
-	 * @param theQuery the query to send
-	 * @return the sparql result handler which parsed the results
-	 * @throws QueryException if there was an error while querying
-	 */
-	private SparqlXmlResultSetParser internalQuery(String theQuery) throws QueryException {
 		return internalQuery(theQuery, TupleQueryResultFormat.SPARQL);
 	}
 
@@ -317,7 +276,7 @@ public class StoreImpl implements Store {
 	 * @return the sparql result set handler which parsed the results
 	 * @throws QueryException if there is an error while querying
 	 */
-	private SparqlXmlResultSetParser internalQuery(String theQuery, TupleQueryResultFormat theAccept) throws QueryException {
+	private TupleQueryResult internalQuery(String theQuery, TupleQueryResultFormat theAccept) throws QueryException {
 		// TODO: this really only works for sparql/xml results, generalize it to work for any sparql results format.
 
 		HttpResource aRes = mFourStoreResource.resource("sparql");
@@ -350,34 +309,29 @@ public class StoreImpl implements Store {
 
 			Response aResponse = aQueryRequest.execute();
 
-			if (aResponse.hasErrorCode()) {
-				throw new QueryException(responseToStoreException(aResponse));
+			try {
+				if (aResponse.hasErrorCode()) {
+					throw new QueryException(responseToStoreException(aResponse));
+				}
+				else {
+					//checkResultsForError(aResponse);
+
+					// TODO: pull out and do something w/ information about hitting the soft limit.  this is how
+					// it looks in the results xml.
+					// <!-- warning: hit complexity limit 2 times, increasing soft limit may give more results -->
+
+					TupleQueryResultBuilder aBuilder = new TupleQueryResultBuilder();
+					TupleQueryResultParser aParser = QueryResultIO.createParser(theAccept);
+					aParser.parse(aResponse.getContent());
+
+					return aBuilder.getQueryResult();
+				}
 			}
-			else {
-				checkResultsForError(aResponse);
-
-				// TODO: pull out and do something w/ information about hitting the soft limit.  this is how
-				// it looks in the results xml.
-				// <!-- warning: hit complexity limit 2 times, increasing soft limit may give more results -->
-
-				try {
-					SparqlXmlResultSetParser aHandler = new SparqlXmlResultSetParser();
-
-					XMLReader aParser = org.xml.sax.helpers.XMLReaderFactory.createXMLReader();
-
-					aParser.setContentHandler(aHandler);
-					aParser.setFeature("http://xml.org/sax/features/validation", false);
-
-					aParser.parse(new InputSource(new ByteArrayInputStream(aResponse.getContent().getBytes(Encoder.UTF8.name()))));
-
-                    return aHandler;
-				}
-				catch (SAXException e) {
-					throw new QueryException("Could not parse SPARQL-XML results", e);
-				}
+			finally {
+				aResponse.close();
 			}
 		}
-		catch (IOException e) {
+		catch (Exception e) {
 			throw new QueryException(e);
 		}
 	}
@@ -387,8 +341,8 @@ public class StoreImpl implements Store {
 	 * @param theResponse the response to check
 	 * @throws QueryException true if it contains error messages, false otherwise
 	 */
-	private void checkResultsForError(Response theResponse) throws QueryException {
-		String aContent = theResponse.getContent();
+	private void checkResultsForError(Response theResponse) throws IOException, QueryException {
+		String aContent = new String(ByteStreams.toByteArray(theResponse.getContent()));
 
 		String aToken = "parser error:";
 
@@ -436,22 +390,27 @@ public class StoreImpl implements Store {
 
 			Response aResponse = aQueryRequest.execute();
 
-			if (aResponse.hasErrorCode()) {
-				throw new QueryException(responseToStoreException(aResponse));
+			try {
+				if (aResponse.hasErrorCode()) {
+					throw new QueryException(responseToStoreException(aResponse));
+				}
+				else {
+					checkResultsForError(aResponse);
+
+					// TODO: pull out and do something w/ information about hitting the soft limit.  this is how
+					// it looks in the results xml.
+					// <!-- warning: hit complexity limit 2 times, increasing soft limit may give more results -->
+
+					try {
+						return OpenRdfIO.readGraph(aResponse.getContent(), RDFFormat.RDFXML);
+					}
+					catch (RDFParseException e) {
+						throw new QueryException("Error while parsing rdf/xml-formatted query results", e);
+					}
+				}
 			}
-			else {
-				checkResultsForError(aResponse);
-
-				// TODO: pull out and do something w/ information about hitting the soft limit.  this is how
-				// it looks in the results xml.
-				// <!-- warning: hit complexity limit 2 times, increasing soft limit may give more results -->
-
-				try {
-					return OpenRdfIO.readGraph(new StringReader(aResponse.getContent()), RDFFormat.RDFXML);
-				}
-				catch (RDFParseException e) {
-					throw new QueryException("Error while parsing rdf/xml-formatted query results", e);
-				}
+			finally {
+				aResponse.close();
 			}
 		}
 		catch (IOException e) {
@@ -525,7 +484,7 @@ public class StoreImpl implements Store {
 		try {
 			Request aQueryRequest = aRes.initPost()
 					.addHeader(HttpHeaders.ContentType.getName(), MimeTypes.FormUrlEncoded.getMimeType())
-					.addHeader(HttpHeaders.ContentLength.getName(), Integer.toString(aParams.getURLEncoded().getBytes(Encoder.UTF8.name()).length))
+					.addHeader(HttpHeaders.ContentLength.getName(), Integer.toString(aParams.getURLEncoded().getBytes(Charsets.UTF_8).length))
 					.setBody(aParams.getURLEncoded());
 
 			Response aResponse = aQueryRequest.execute();
@@ -622,7 +581,7 @@ public class StoreImpl implements Store {
 	public boolean append(final InputStream theGraph, final RDFFormat theFormat, final URI theGraphURI) throws StoreException {
 		//return dataOperation(Method.POST, theGraph, theFormat, theGraphURI);
 		try {
-			return append(IOUtil.readStringFromStream(theGraph), theFormat, theGraphURI);
+			return append(new String(ByteStreams.toByteArray(theGraph)), theFormat, theGraphURI);
 		}
 		catch (IOException e) {
 			throw new StoreException(e);
@@ -655,12 +614,7 @@ public class StoreImpl implements Store {
 	 * @throws StoreException if there is an error invoking the operation
 	 */
 	private boolean dataOperation(final Method theMethod, final String theGraph, final RDFFormat theFormat, final URI theGraphURI) throws StoreException {
-		try {
-			return dataOperation(theMethod, new ByteArrayInputStream(theGraph.getBytes(Encoder.UTF8.name())), theFormat, theGraphURI);
-		}
-		catch (UnsupportedEncodingException e) {
-			throw new StoreException(e);
-		}
+		return dataOperation(theMethod, new ByteArrayInputStream(theGraph.getBytes(Charsets.UTF_8)), theFormat, theGraphURI);
 	}
 
 	/**
@@ -710,8 +664,9 @@ public class StoreImpl implements Store {
 	public long size() throws StoreException {
 		HttpResource aRes = mFourStoreResource.resource("status").resource("size");
 
+		Response aResponse = null;
 		try {
-			Response aResponse = aRes.get();
+			aResponse = aRes.get();
 
 			if (aResponse.hasErrorCode()) {
 				throw responseToStoreException(aResponse);
@@ -721,13 +676,23 @@ public class StoreImpl implements Store {
 				// page source looks like:  <th>Total</th><td>3144265</td
 				// so when we find Total, we want to move up 5 (Total) + 5 (</th>) + 4 (<td>)
 				// and grab data until the next <
-				String aStr = aResponse.getContent();
+				String aStr = new String(ByteStreams.toByteArray(aResponse.getContent()));
 				int aStartIndex = aStr.indexOf("Total") + 14;
 				return Long.parseLong(aStr.substring(aStartIndex, aStr.indexOf("<", aStartIndex)));
 			}
 		}
 		catch (IOException e) {
 			throw new StoreException(e);
+		}
+		finally {
+			if (aResponse != null) {
+				try {
+					aResponse.close();
+				}
+				catch (IOException e) {
+					// swallow
+				}
+			}
 		}
 	}
 
@@ -737,18 +702,29 @@ public class StoreImpl implements Store {
 	public String status() throws StoreException {
 		HttpResource aRes = mFourStoreResource.resource("status");
 
+		Response aResponse = null;
 		try {
-			Response aResponse = aRes.get();
+			aResponse = aRes.get();
 
 			if (aResponse.hasErrorCode()) {
 				throw responseToStoreException(aResponse);
 			}
 			else {
-				return aResponse.getContent();
+				return new String(ByteStreams.toByteArray(aResponse.getContent()));
 			}
 		}
 		catch (IOException e) {
 			throw new StoreException(e);
+		}
+		finally {
+			if (aResponse != null) {
+				try {
+					aResponse.close();
+				}
+				catch (IOException e) {
+					// swallow
+				}
+			}
 		}
 	}
 

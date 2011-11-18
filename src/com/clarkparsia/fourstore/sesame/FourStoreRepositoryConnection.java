@@ -66,12 +66,11 @@ import java.util.HashMap;
 
 import info.aduna.iteration.Iteration;
 
-import com.clarkparsia.utils.io.IOUtil;
-import com.clarkparsia.utils.io.Encoder;
-
-import static com.clarkparsia.utils.collections.CollectionUtil.set;
 import com.clarkparsia.openrdf.util.GraphBuildingRDFHandler;
 import com.clarkparsia.openrdf.query.sparql.SPARQLQueryRenderer;
+import com.google.common.base.Charsets;
+import com.google.common.io.CharStreams;
+import com.google.common.collect.Sets;
 
 /**
  * <p>Extends the Sesame SailRepositoryConnection class to provide a connection interface to a remote 4store instance.
@@ -166,7 +165,7 @@ public class FourStoreRepositoryConnection extends SailRepositoryConnection {
 		// expose something to handle Reader's since you cannot pass a Reader to an HTTPConnection.
 		// could always do something like this:  http://www.koders.com/java/fid0A51E45C950B2B8BD9365C19F2626DE35EC09090.aspx
 
-		add(new ByteArrayInputStream(IOUtil.readStringFromReader(theReader).getBytes(Encoder.UTF8.name())), theBaseURI, theRDFFormat, theContexts);
+		add(new ByteArrayInputStream(CharStreams.toString(theReader).getBytes(Charsets.UTF_8)), theBaseURI, theRDFFormat, theContexts);
 	}
 
 	/**
@@ -217,7 +216,7 @@ public class FourStoreRepositoryConnection extends SailRepositoryConnection {
 	@Override
 	public void add(final Iterable<? extends Statement> theIterable, final Resource... theContexts) throws RepositoryException {
 		Graph aGraph = new GraphImpl();
-		aGraph.addAll(set(theIterable));
+		aGraph.addAll(Sets.newHashSet(theIterable));
 
 		try {
 			getFourStoreSailConnection().add(aGraph, theContexts);
@@ -269,7 +268,7 @@ public class FourStoreRepositoryConnection extends SailRepositoryConnection {
 	public void remove(final Iterable<? extends Statement> theIterable, final Resource... theContexts) throws RepositoryException {
 		Graph aGraph = new GraphImpl();
 
-		aGraph.addAll(set(theIterable));
+		aGraph.addAll(Sets.newHashSet(theIterable));
 
 		try {
 			getFourStoreSailConnection().remove(aGraph, theContexts);

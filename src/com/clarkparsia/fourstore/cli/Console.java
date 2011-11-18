@@ -31,14 +31,13 @@ import java.io.FileInputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 
-import com.clarkparsia.utils.DataCommand;
-import com.clarkparsia.utils.AbstractDataCommand;
-import com.clarkparsia.utils.io.IOUtil;
 import com.clarkparsia.fourstore.impl.StoreFactory;
 import com.clarkparsia.fourstore.api.Store;
 import com.clarkparsia.fourstore.api.QueryException;
 import com.clarkparsia.fourstore.api.StoreException;
 import com.clarkparsia.openrdf.OpenRdfIO;
+import com.google.common.base.Predicate;
+import com.google.common.io.ByteStreams;
 import org.openrdf.model.Graph;
 import org.openrdf.model.URI;
 import org.openrdf.model.impl.ValueFactoryImpl;
@@ -54,7 +53,7 @@ import org.openrdf.query.BindingSet;
  * @author Michael Grove
  */
 public class Console {
-	private static Map<Class<?>, DataCommand<?>> OPTION_TO_CMD = new LinkedHashMap<Class<?>, DataCommand<?>>();
+	private static Map<Class<?>, Predicate<?>> OPTION_TO_CMD = new LinkedHashMap<Class<?>, Predicate<?>>();
 
 	public static void main(String[] args) throws Exception {
 		OPTION_TO_CMD.put(HelpCmd.class, new HelpCommand());
@@ -76,9 +75,9 @@ public class Console {
 			}
 			else {
 				Class<?> aClass = cliForCommand(args[0]);
-				DataCommand aCmd = OPTION_TO_CMD.get(aClass);
-				aCmd.setData(CliFactory.createCli(aClass).parseArguments(Arrays.copyOfRange(args, 1, args.length)));
-				aCmd.execute();
+				Predicate aCmd = OPTION_TO_CMD.get(aClass);
+
+				aCmd.apply(CliFactory.createCli(aClass).parseArguments(Arrays.copyOfRange(args, 1, args.length)));
 
 			}
 		}
@@ -117,38 +116,38 @@ public class Console {
 
 	private static class RemoveCommand extends StoreCommand<Remove> {
 
-		public void execute() {
-			Store aStore = getStore();
+		public boolean apply(final Remove theCmd) {
+			Store aStore = getStore(theCmd);
 
 			RDFFormat aFormat = RDFFormat.RDFXML;
-			if (getData().isRDFFormat()) {
-				aFormat = RDFFormat.valueOf(getData().getRDFFormat());
+			if (theCmd.isRDFFormat()) {
+				aFormat = RDFFormat.valueOf(theCmd.getRDFFormat());
 			}
 
 			URI aGraphURI = null;
-			if (getData().isGraph()) {
-				aGraphURI = ValueFactoryImpl.getInstance().createURI(getData().getGraph());
+			if (theCmd.isGraph()) {
+				aGraphURI = ValueFactoryImpl.getInstance().createURI(theCmd.getGraph());
 			}
 
 			try {
 				long aSize = aStore.size();
 
-				for (File aFile : getData().getFiles()) {
+				for (File aFile : theCmd.getFiles()) {
 					try {
 						Graph aGraph = OpenRdfIO.readGraph(new FileInputStream(aFile), aFormat);
 						aStore.delete(aGraph, aGraphURI);
 					}
 					catch (FileNotFoundException e) {
 						System.out.println("File could not be found: " + aFile);
-						return;
+						return true;
 					}
 					catch (IOException e) {
 						System.out.println("There was an error reading the file: " + aFile);
-						return;
+						return true;
 					}
 					catch (RDFParseException e) {
 						System.out.println("There was an error while parsing the file: " + aFile);
-						return;
+						return true;
 					}
 				}
 
@@ -159,34 +158,36 @@ public class Console {
 			catch (StoreException e) {
 				System.out.println("There was an error adding a data file: " + e.getMessage());
 			}
+
+			return true;
 		}
 	}
 
 	private static class AddCommand extends StoreCommand<Add> {
 
-		public void execute() {
-			Store aStore = getStore();
+		public boolean apply(final Add theCmd) {
+			Store aStore = getStore(theCmd);
 
 			RDFFormat aFormat = RDFFormat.RDFXML;
-			if (getData().isRDFFormat()) {
-				aFormat = RDFFormat.valueOf(getData().getRDFFormat());
+			if (theCmd.isRDFFormat()) {
+				aFormat = RDFFormat.valueOf(theCmd.getRDFFormat());
 			}
 
 			URI aGraphURI = null;
-			if (getData().isGraph()) {
-				aGraphURI = ValueFactoryImpl.getInstance().createURI(getData().getGraph());
+			if (theCmd.isGraph()) {
+				aGraphURI = ValueFactoryImpl.getInstance().createURI(theCmd.getGraph());
 			}
 
 			try {
 				long aSize = aStore.size();
 
-				for (File aFile : getData().getFiles()) {
+				for (File aFile : theCmd.getFiles()) {
 					try {
 						aStore.add(new FileInputStream(aFile), aFormat, aGraphURI);
 					}
 					catch (FileNotFoundException e) {
 						System.out.println("File could not be found: " + aFile);
-						return;
+						return true;
 					}
 				}
 
@@ -197,6 +198,8 @@ public class Console {
 			catch (StoreException e) {
 				System.out.println("There was an error adding a data file: " + e.getMessage());
 			}
+
+			return true;
 		}
 	}
 
@@ -205,28 +208,28 @@ public class Console {
 		/**
 		 * @inheritDoc
 		 */
-		public void execute() {
+		public boolean apply(final Query theCmd) {
 			try {
-				Store aStore = getStore();
+				Store aStore = getStore(theCmd);
 
-				String aQuery = getData().getQuery();
-				if (getData().isQuery()) {
-					aQuery = getData().getQuery();
+				String aQuery = theCmd.getQuery();
+				if (theCmd.isQuery()) {
+					aQuery = theCmd.getQuery();
 				}
-				else if (getData().isFile() && getData().getFile().size() > 0) {
+				else if (theCmd.isFile() && theCmd.getFile().size() > 0) {
 					try {
-						aQuery = IOUtil.readStringFromStream(new FileInputStream(getData().getFile().get(0)));
+						aQuery = new String(ByteStreams.toByteArray(new FileInputStream(theCmd.getFile().get(0))));
 					}
 					catch (IOException e) {
 						System.out.println("Unable to read query string from file: " + e.getMessage());
-						return;
+						return true;
 					}
 				}
 
 				if (aQuery == null) {
 					System.out.println("No query string specified.");
 
-					return;
+					return true;
 				}
 
 				aQuery = aQuery.trim();
@@ -257,8 +260,8 @@ public class Console {
 					Graph aGraph = aStore.constructQuery(aQuery);
 					RDFFormat aFormat = RDFFormat.NTRIPLES;
 
-					if (getData().isRDFFormat()) {
-						aFormat = RDFFormat.valueOf(getData().getRDFFormat());
+					if (theCmd.isRDFFormat()) {
+						aFormat = RDFFormat.valueOf(theCmd.getRDFFormat());
 					}
 
 					try {
@@ -280,20 +283,22 @@ public class Console {
 			catch (QueryException e) {
 				System.out.println("There was an error while executing the query: " + e.getMessage());
 			}
+
+			return true;
 		}
 	}
 
-	private abstract static class StoreCommand<T extends StoreCmd> extends AbstractDataCommand<T> {
-		Store getStore() {
+	private abstract static class StoreCommand<T extends StoreCmd> implements Predicate<T> {
+		Store getStore(final T theCmd) {
 			try {
-				Store aStore = StoreFactory.create(new URL(getData().getURL()));
+				Store aStore = StoreFactory.create(new URL(theCmd.getURL()));
 
 				aStore.connect();
 
 				return aStore;
 			}
 			catch (MalformedURLException e) {
-				System.out.println(getData().getURL() + " is not a valid URL.");
+				System.out.println(theCmd.getURL() + " is not a valid URL.");
 				System.exit(0);
 			}
 			catch (ConnectException e) {
@@ -307,9 +312,9 @@ public class Console {
 
 	private static class SizeCommand extends StoreCommand<Size> {
 
-		public void execute() {
+		public boolean apply(final Size theCmd) {
 			try {
-				Store aStore = getStore();
+				Store aStore = getStore(theCmd);
 
 				System.out.println(aStore.size());
 
@@ -321,16 +326,18 @@ public class Console {
 			catch (ConnectException e) {
 				// ignore disconnect error
 			}
+			
+			return true;
 		}
 	}
 
-	private static class HelpCommand extends AbstractDataCommand<HelpCmd> {
+	private static class HelpCommand implements Predicate<HelpCmd> {
 
 		/**
 		 * @inheritDoc
 		 */
-		public void execute() {
-			String aSubCmd = getData().getSubCommand();
+		public boolean apply(HelpCmd theCmd) {
+			String aSubCmd = theCmd.getSubCommand();
 
 			if (aSubCmd == null || aSubCmd.length() == 0) {
 				System.out.println("4Store HTTP server command line client\n");
@@ -342,6 +349,8 @@ public class Console {
 			else {
 				System.out.println(CliFactory.createCli(cliForCommand(aSubCmd)).getHelpMessage());
 			}
+			
+			return true;
 		}
 	}
 }

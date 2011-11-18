@@ -26,7 +26,8 @@ import java.net.ConnectException;
 
 import com.clarkparsia.fourstore.api.Store;
 import com.clarkparsia.fourstore.impl.StoreFactory;
-import com.clarkparsia.utils.web.Method;
+
+import com.clarkparsia.common.web.Method;
 
 /**
  * <p>Implementation of a Sesame Sail which is backed by an instance of 4Store.</p>

@@ -61,16 +61,15 @@ import com.clarkparsia.openrdf.OpenRdfIO;
 import com.clarkparsia.openrdf.query.SesameQueryUtils;
 
 import static com.clarkparsia.openrdf.OpenRdfUtil.iterable;
-
-import com.clarkparsia.utils.io.Encoder;
-import com.clarkparsia.utils.io.IOUtil;
-import com.clarkparsia.utils.web.HttpResource;
-import com.clarkparsia.utils.web.ParameterList;
-import com.clarkparsia.utils.web.Request;
-import com.clarkparsia.utils.web.HttpHeaders;
-import com.clarkparsia.utils.web.MimeTypes;
-import com.clarkparsia.utils.web.Response;
-import com.clarkparsia.utils.web.HttpResourceImpl;
+import com.clarkparsia.common.web.Response;
+import com.clarkparsia.common.web.HttpHeaders;
+import com.clarkparsia.common.web.MimeTypes;
+import com.clarkparsia.common.web.Request;
+import com.clarkparsia.common.web.ParameterList;
+import com.clarkparsia.common.web.HttpResourceImpl;
+import com.clarkparsia.common.web.HttpResource;
+import com.google.common.base.Charsets;
+import com.google.common.io.Files;
 
 import java.net.URL;
 
@@ -179,7 +178,7 @@ public class APITests {
 
 			Request aQueryRequest = aRes.initPost()
 					.addHeader(HttpHeaders.ContentType.getName(), MimeTypes.FormUrlEncoded.getMimeType())
-					.addHeader(HttpHeaders.ContentLength.getName(), Integer.toString(aParams.getURLEncoded().getBytes(Encoder.UTF8.name()).length))
+					.addHeader(HttpHeaders.ContentLength.getName(), Integer.toString(aParams.getURLEncoded().getBytes(Charsets.UTF_8).length))
 					.setBody(aParams.getURLEncoded());
 
 			Response aResponse = aQueryRequest.execute();
@@ -298,7 +297,7 @@ public class APITests {
 
 			assertNotContains(aGraph);
 
-			mStore.append(new ByteArrayInputStream(aStr.getBytes(Encoder.UTF8.name())), RDFFormat.TURTLE, TEST_CONTEXT);
+			mStore.append(new ByteArrayInputStream(aStr.getBytes(Charsets.UTF_8)), RDFFormat.TURTLE, TEST_CONTEXT);
 
 			assertContains(aGraph);
 
@@ -338,7 +337,7 @@ public class APITests {
 
 			assertNotContains(TEST_DATA);
 
-			mStore.add(new ByteArrayInputStream(aStr.getBytes(Encoder.UTF8.name())), RDFFormat.TURTLE, TEST_CONTEXT);
+			mStore.add(new ByteArrayInputStream(aStr.getBytes(Charsets.UTF_8)), RDFFormat.TURTLE, TEST_CONTEXT);
 
 			assertContains(TEST_DATA);
 		}
@@ -511,7 +510,7 @@ public class APITests {
 			StringWriter aData = new StringWriter();
 			OpenRdfIO.writeGraph(aGraph, aData, RDFFormat.NTRIPLES);
 
-			aConn.add(new ByteArrayInputStream(aData.toString().getBytes(Encoder.UTF8.name())), null, aFormat, TEST_CONTEXT);
+			aConn.add(new ByteArrayInputStream(aData.toString().getBytes(Charsets.UTF_8)), null, aFormat, TEST_CONTEXT);
 
 			assertContains(aConn, aGraph, true);
 
@@ -532,9 +531,9 @@ public class APITests {
 			File aTmpFile = File.createTempFile("test", ".nt");
 			aTmpFile.deleteOnExit();
 
-			IOUtil.writeStringToFile(aData.toString(), aTmpFile);
+			Files.write(aData.toString(), aTmpFile, Charsets.UTF_8);
 
-			IOUtil.readStringFromStream(new FileInputStream(aTmpFile));
+			Files.toString(aTmpFile, Charsets.UTF_8);
 
 			aConn.add(aTmpFile, null, aFormat, TEST_CONTEXT);
 		}

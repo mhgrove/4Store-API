@@ -20,16 +20,15 @@ import com.clarkparsia.fourstore.api.StoreException;
 import com.clarkparsia.fourstore.api.QueryException;
 import com.clarkparsia.fourstore.sesame.trans.TransactionSupport;
 import com.clarkparsia.fourstore.sesame.trans.NoOpTransactionSupport;
-import com.clarkparsia.fourstore.sesame.trans.NaiveTransactionSupport;
+
 import com.clarkparsia.openrdf.query.SesameQueryUtils;
-import com.clarkparsia.openrdf.query.sparql.SPARQLQueryRenderer;
+
 import com.clarkparsia.openrdf.query.sparql.SparqlTupleExprRenderer;
 import com.clarkparsia.openrdf.OpenRdfIO;
 import static com.clarkparsia.openrdf.OpenRdfUtil.iterable;
-import com.clarkparsia.utils.Function;
-import com.clarkparsia.utils.AbstractDataCommand;
-import static com.clarkparsia.utils.collections.CollectionUtil.transform;
-import static com.clarkparsia.utils.collections.CollectionUtil.each;
+import com.google.common.collect.Iterators;
+import com.google.common.collect.Iterables;
+import com.google.common.base.Function;
 
 import org.openrdf.sail.helpers.NotifyingSailConnectionBase;
 
@@ -586,10 +585,10 @@ public class FourStoreSailConnection extends NotifyingSailConnectionBase {
 	 * @inheritDoc
 	 */
 	protected CloseableIteration<? extends Namespace, SailException> getNamespacesInternal() throws SailException {
-		return new CloseableIteratorIteration<Namespace, SailException>(transform(mNamespaces.entrySet(), new Function<Map.Entry<String, String>, Namespace>() {
+		return new CloseableIteratorIteration<Namespace, SailException>(Iterables.transform(mNamespaces.entrySet(), new Function<Map.Entry<String, String>, Namespace>() {
 			public Namespace apply(final Map.Entry<String, String> theIn) {
 				return new NamespaceImpl(theIn.getKey(), theIn.getValue());
-		}}).iterator());
+			}}).iterator());
 	}
 
 	/**
