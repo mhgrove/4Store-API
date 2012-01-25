@@ -37,6 +37,7 @@ import org.openrdf.query.impl.TupleQueryResultBuilder;
 import org.openrdf.query.resultio.TupleQueryResultFormat;
 import org.openrdf.query.resultio.QueryResultIO;
 import org.openrdf.query.resultio.TupleQueryResultParser;
+import org.openrdf.query.resultio.sparqlxml.SPARQLResultsXMLParser;
 
 import org.openrdf.rio.RDFFormat;
 import org.openrdf.rio.RDFParseException;
@@ -331,7 +332,8 @@ public class StoreImpl implements Store {
 					// <!-- warning: hit complexity limit 2 times, increasing soft limit may give more results -->
 
 					TupleQueryResultBuilder aBuilder = new TupleQueryResultBuilder();
-					TupleQueryResultParser aParser = QueryResultIO.createParser(theAccept);
+					TupleQueryResultParser aParser = QueryResultIO.createParser(theAccept);;
+					aParser.setTupleQueryResultHandler(aBuilder);
 					aParser.parse(aResponse.getContent());
 
 					return aBuilder.getQueryResult();
