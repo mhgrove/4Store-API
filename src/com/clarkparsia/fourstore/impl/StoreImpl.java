@@ -85,7 +85,17 @@ public class StoreImpl implements Store {
 
 	public static final String PARAM_QUERY = "query";
 	public static final String PARAM_SOFT_LIMIT = "soft-limit";
+	
+	private static final String SPARQL_READ_ENDPOINT = "sparql/";
+	
+	private static final String SPARQL_WRITE_ENDPOINT = "update/";
+	
+	private static final String SPARQL_DATA_ENDPOINT = "data/";
+	
+	private static final String SPARQL_STATUS_ENDPOINT = "status/";
 
+	private static final String SPARQL_SIZE_ENDPOINT= SPARQL_STATUS_ENDPOINT+ "size/";
+	
 	private int mSoftLimit;
 
 	/**
@@ -223,7 +233,7 @@ public class StoreImpl implements Store {
 	 */
 	public void connect() throws ConnectException {
 		try {
-			Response aResp = mFourStoreResource.resource("status/").get();
+			Response aResp = mFourStoreResource.resource(SPARQL_STATUS_ENDPOINT).get();
 
 			if (aResp.hasErrorCode()) {
 				throw new ConnectException("There was an error connecting to the store: " +
@@ -279,7 +289,7 @@ public class StoreImpl implements Store {
 	private TupleQueryResult internalQuery(String theQuery, TupleQueryResultFormat theAccept) throws QueryException {
 		// TODO: this really only works for sparql/xml results, generalize it to work for any sparql results format.
 
-		HttpResource aRes = mFourStoreResource.resource("sparql");
+		HttpResource aRes = mFourStoreResource.resource(SPARQL_READ_ENDPOINT);
 
 		String aQuery = theQuery;
 
@@ -358,7 +368,7 @@ public class StoreImpl implements Store {
 	 * @inheritDoc
 	 */
 	public Graph constructQuery(final String theQuery) throws QueryException {
-		HttpResource aRes = mFourStoreResource.resource("sparql");
+		HttpResource aRes = mFourStoreResource.resource(SPARQL_READ_ENDPOINT);
 
 		String aQuery = theQuery;
 
@@ -462,7 +472,7 @@ public class StoreImpl implements Store {
 	 * @inheritDoc
 	 */
     public boolean delete(final Graph theGraph, final URI theGraphURI) throws StoreException {
-		HttpResource aRes = mFourStoreResource.resource("update");
+		HttpResource aRes = mFourStoreResource.resource(SPARQL_WRITE_ENDPOINT);
 
 		StringBuffer aQuery = new StringBuffer();
 
@@ -507,7 +517,7 @@ public class StoreImpl implements Store {
 	 * @inheritDoc
 	 */
 	public boolean delete(final URI theGraphURI) throws StoreException {
-		HttpResource aRes = mFourStoreResource.resource("data");
+		HttpResource aRes = mFourStoreResource.resource(SPARQL_DATA_ENDPOINT);
 
 		if (theGraphURI != null) {
 			aRes = aRes.resource(theGraphURI.toString());
@@ -545,7 +555,7 @@ public class StoreImpl implements Store {
 	 * @inheritDoc
 	 */
 	public boolean append(final String theGraph, final RDFFormat theFormat, final URI theGraphURI) throws StoreException {
-		HttpResource aRes = mFourStoreResource.resource("data");
+		HttpResource aRes = mFourStoreResource.resource(SPARQL_DATA_ENDPOINT);
 
 		ParameterList aParams = new ParameterList();
 		aParams.add("mime-type", theFormat.getDefaultMIMEType())
@@ -627,7 +637,7 @@ public class StoreImpl implements Store {
 	 * @throws StoreException if there is an error invoking the operation
 	 */
 	private boolean dataOperation(final Method theMethod, final InputStream theGraph, final RDFFormat theFormat, final URI theGraphURI) throws StoreException {
-		HttpResource aRes = mFourStoreResource.resource("data");
+		HttpResource aRes = mFourStoreResource.resource(SPARQL_DATA_ENDPOINT);
 
 		if (theGraphURI != null) {
 			// does this need to be URL encoded?
@@ -662,7 +672,7 @@ public class StoreImpl implements Store {
 	 * @inheritDoc
 	 */
 	public long size() throws StoreException {
-		HttpResource aRes = mFourStoreResource.resource("status").resource("size");
+		HttpResource aRes = mFourStoreResource.resource(SPARQL_SIZE_ENDPOINT);
 
 		Response aResponse = null;
 		try {
@@ -700,7 +710,7 @@ public class StoreImpl implements Store {
 	 * @inheritDoc
 	 */
 	public String status() throws StoreException {
-		HttpResource aRes = mFourStoreResource.resource("status");
+		HttpResource aRes = mFourStoreResource.resource(SPARQL_STATUS_ENDPOINT);
 
 		Response aResponse = null;
 		try {
