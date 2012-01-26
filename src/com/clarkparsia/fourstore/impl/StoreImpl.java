@@ -325,7 +325,7 @@ public class StoreImpl implements Store {
 					throw new QueryException(responseToStoreException(aResponse));
 				}
 				else {
-					//checkResultsForError(aResponse);
+					InputStream theContent = checkResultsForError(aResponse);
 
 					// TODO: pull out and do something w/ information about hitting the soft limit.  this is how
 					// it looks in the results xml.
@@ -334,7 +334,7 @@ public class StoreImpl implements Store {
 					TupleQueryResultBuilder aBuilder = new TupleQueryResultBuilder();
 					TupleQueryResultParser aParser = QueryResultIO.createParser(theAccept);;
 					aParser.setTupleQueryResultHandler(aBuilder);
-					aParser.parse(aResponse.getContent());
+					aParser.parse(theContent);
 
 					return aBuilder.getQueryResult();
 				}
@@ -353,7 +353,7 @@ public class StoreImpl implements Store {
 	 * @param theResponse the response to check
 	 * @throws QueryException true if it contains error messages, false otherwise
 	 */
-	private void checkResultsForError(Response theResponse) throws IOException, QueryException {
+	private InputStream checkResultsForError(Response theResponse) throws IOException, QueryException {
 		String aContent = new String(ByteStreams.toByteArray(theResponse.getContent()));
 
 		String aToken = "parser error:";
@@ -364,6 +364,10 @@ public class StoreImpl implements Store {
 			throw new QueryException("Parse Error:" + aContent.substring(aStart,
 																		 aContent.indexOf("-->", aStart)));
 		}
+		
+		
+        return new ByteArrayInputStream(aContent.getBytes("UTF-8"));
+        
 	}
 
 	/**
@@ -407,14 +411,14 @@ public class StoreImpl implements Store {
 					throw new QueryException(responseToStoreException(aResponse));
 				}
 				else {
-					checkResultsForError(aResponse);
+					InputStream theContent = checkResultsForError(aResponse);
 
 					// TODO: pull out and do something w/ information about hitting the soft limit.  this is how
 					// it looks in the results xml.
 					// <!-- warning: hit complexity limit 2 times, increasing soft limit may give more results -->
 
 					try {
-						return OpenRdfIO.readGraph(aResponse.getContent(), RDFFormat.RDFXML);
+						return OpenRdfIO.readGraph(theContent, RDFFormat.RDFXML);
 					}
 					catch (RDFParseException e) {
 						throw new QueryException("Error while parsing rdf/xml-formatted query results", e);
