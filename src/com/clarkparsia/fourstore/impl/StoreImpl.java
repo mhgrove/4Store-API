@@ -375,6 +375,7 @@ public class StoreImpl implements Store {
 
     // TODO: could stand for more robust error checking.
     if (aContent.indexOf(aToken) != -1) {
+      aContent = new String(ByteStreams.toByteArray(theResponse.getContent())); 
       int aStart = aContent.indexOf(aToken) + aToken.length();
       throw new QueryException("Parse Error:" + aContent.substring(aStart, aContent.indexOf("-->", aStart)));
     }
